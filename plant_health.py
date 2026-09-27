@@ -13,7 +13,7 @@ API_KEY = os.getenv("ROBOFLOW_API_KEY")
 MODEL_ID = os.getenv("ROBOFLOW_MODEL_ID")
 
 # ESP32-CAM
-ESP32_URL = "http://10.191.83.238/capture"
+ESP32_URL = "http://10.155.192.238/capture"
 
 
 def scan_plant():
