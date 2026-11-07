@@ -25,8 +25,8 @@ app = Flask(__name__)
 # ============================================================
 # ESP32 CONFIG
 # ============================================================
-ESP32_CAM_IP = os.getenv("ESP32_CAM_IP", "10.155.192.238")
-ESP32_MAIN_IP = os.getenv("ESP32_MAIN_IP", "10.155.192.209")
+ESP32_CAM_IP = os.getenv("ESP32_CAM_IP", "192.168.93.28")
+ESP32_MAIN_IP = os.getenv("ESP32_MAIN_IP", "192.168.93.164")
 ESP32_URL = f"http://{ESP32_CAM_IP}/capture"
 ESP32_DATA_URL = f"http://{ESP32_MAIN_IP}/data"
 ESP32_CONTROL_URL = f"http://{ESP32_MAIN_IP}"

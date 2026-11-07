@@ -281,26 +281,34 @@ void backward() {
 // ============================================================
 
 void pumpON() {
-  int level = relayActiveLow ? LOW : HIGH;
-  digitalWrite(
-    RELAY_PIN,
-    level
-  );
+  if (relayActiveLow) {
+    // Active LOW with 5V relay: Pull to GND to activate
+    pinMode(RELAY_PIN, OUTPUT);
+    digitalWrite(RELAY_PIN, LOW);
+    Serial.println("[PUMP] ON -> GPIO 33 pulled to GND (Relay Activated)");
+  } else {
+    // Active HIGH: Drive 3.3V
+    pinMode(RELAY_PIN, OUTPUT);
+    digitalWrite(RELAY_PIN, HIGH);
+    Serial.println("[PUMP] ON -> GPIO 33 driven HIGH (Relay Activated)");
+  }
   pumpOn = true;
-  Serial.printf("[PUMP] ON -> GPIO %d set to %s (Relay Mode: Active %s)\n",
-                RELAY_PIN, level == HIGH ? "HIGH" : "LOW", relayActiveLow ? "LOW" : "HIGH");
 }
 
 
 void pumpOFF() {
-  int level = relayActiveLow ? HIGH : LOW;
-  digitalWrite(
-    RELAY_PIN,
-    level
-  );
+  if (relayActiveLow) {
+    // Active LOW with 5V relay: Tri-state to INPUT (High-Z).
+    // This is electrically identical to unplugging the wire, so the 5V optocoupler completely shuts off!
+    pinMode(RELAY_PIN, INPUT);
+    Serial.println("[PUMP] OFF -> GPIO 33 High-Z Disconnected (Relay Deactivated)");
+  } else {
+    // Active HIGH: Drive LOW to turn off
+    pinMode(RELAY_PIN, OUTPUT);
+    digitalWrite(RELAY_PIN, LOW);
+    Serial.println("[PUMP] OFF -> GPIO 33 driven LOW (Relay Deactivated)");
+  }
   pumpOn = false;
-  Serial.printf("[PUMP] OFF -> GPIO %d set to %s (Relay Mode: Active %s)\n",
-                RELAY_PIN, level == HIGH ? "HIGH" : "LOW", relayActiveLow ? "LOW" : "HIGH");
 }
 // ============================================================
 // PUMP WEB CONTROL
