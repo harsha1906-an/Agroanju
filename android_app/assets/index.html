@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AGRI-VISE Rover — Snapdragon AI Console</title>
+<style>
+:root {
+    --bg: #0f1612;
+    --card: #18241d;
+    --card-border: #26382e;
+    --accent: #28a745;
+    --accent-hover: #218838;
+    --text: #e8f0ec;
+    --muted: #8ea89a;
+    --danger: #dc3545;
+    --warn: #ffc107;
+    --info: #17a2b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    padding: 10px;
+    padding-bottom: 25px;
+    font-size: 14px;
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.brand {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+.brand span { color: var(--accent); }
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: #1f3326;
+    color: #68d391;
+    font-weight: 600;
+}
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #68d391;
+    box-shadow: 0 0 6px #68d391;
+}
+.status-dot.offline {
+    background: var(--danger);
+    box-shadow: 0 0 6px var(--danger);
+}
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+.card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 12px;
+}
+.card-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.stream-container {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#cameraFeed {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    background: #000;
+}
+#overlayCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.stream-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.75);
+    color: #68d391;
+    font-size: 0.72rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+.stream-badge.err {
+    color: var(--danger);
+}
+.dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-width: 280px;
+    margin: 4px auto;
+}
+.dpad-btn {
+    background: #23352b;
+    border: 1px solid #324c3e;
+    color: #fff;
+    padding: 16px 0;
+    font-size: 1.3rem;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.1s ease;
+    touch-action: manipulation;
+}
+.dpad-btn:active, .dpad-btn.active {
+    background: var(--accent);
+    transform: scale(0.95);
+    box-shadow: 0 0 12px rgba(40,167,69,0.5);
+}
+.dpad-btn.stop {
+    background: #471d22;
+    border-color: #6d272f;
+    color: #ff8b94;
+    font-weight: 700;
+    font-size: 1rem;
+}
+.dpad-btn.stop:active {
+    background: var(--danger);
+    color: #fff;
+}
+.empty-cell { visibility: hidden; }
+
+.telemetry-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+.tele-box {
+    background: #141e18;
+    border: 1px solid #1f2f25;
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+.tele-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 2px;
+}
+.tele-val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+}
+.btn-group {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+.btn {
+    flex: 1;
+    background: #23352b;
+    border: 1px solid #324c3e;
+    color: #fff;
+    padding: 10px 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+}
+.btn.primary {
+    background: var(--accent);
+    border-color: var(--accent-hover);
+}
+.btn.danger {
+    background: var(--danger);
+    border-color: #bd2130;
+}
+.btn:active {
+    transform: scale(0.97);
+}
+
+.health-banner {
+    background: #141e18;
+    border: 1px solid #23352b;
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 8px;
+}
+.health-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #68d391;
+    margin-bottom: 4px;
+}
+.health-prescription {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #cbd5e0;
+}
+
+/* Settings Modal */
+#settingsModal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 999;
+    padding: 20px;
+    overflow-y: auto;
+}
+.modal-box {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px;
+    max-width: 400px;
+    margin: 40px auto;
+}
+.form-group {
+    margin-bottom: 12px;
+}
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+.form-group input {
+    width: 100%;
+    padding: 8px 10px;
+    background: #121b14;
+    border: 1px solid #26382e;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+</style>
+</head>
+<body>
+
+<header>
+    <div>
+        <div class="brand"><span>AGRI</span>-VISE</div>
+        <div style="font-size:0.7rem; color:var(--muted);">Snapdragon On-Device AI Rover Console</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <div id="connStatus" class="status-pill">
+            <span class="status-dot" id="connDot"></span>
+            <span id="connText">Direct Mode</span>
+        </div>
+        <button type="button" class="btn" style="padding:4px 8px; font-size:0.8rem;" onclick="openSettings()">⚙</button>
+    </div>
+</header>
+
+<div class="grid">
+
+    <!-- CAMERA & ON-DEVICE AI DETECTION -->
+    <div class="card">
+        <div class="card-title">
+            <span>📷 Rover Camera & AI Pathology Scanner</span>
+            <span id="fpsBadge" style="font-size:0.75rem; color:#68d391;">Live</span>
+        </div>
+        <div class="stream-container">
+            <img id="cameraFeed" src="" alt="Connecting to Camera...">
+            <canvas id="overlayCanvas"></canvas>
+            <div class="stream-badge" id="aiStatus">Connecting to ESP32-CAM...</div>
+        </div>
+        <div class="btn-group">
+            <button type="button" class="btn primary" id="btnScan" onclick="triggerScan()">🔍 Scan Plant Disease</button>
+            <button type="button" class="btn" id="btnAutoScan" onclick="toggleAutoScan()">Auto-AI: OFF</button>
+        </div>
+
+        <div class="health-banner" id="healthBanner">
+            <div class="health-title" id="healthTitle">🌿 Plant Scanner Ready</div>
+            <div class="health-prescription" id="healthRx">Hold a crop leaf 10–25cm in front of the camera and tap "Scan Plant Disease".</div>
+        </div>
+    </div>
+
+    <!-- RC RADIO CONTROL -->
+    <div class="card">
+        <div class="card-title">
+            <span>🕹️ RC Radio Control</span>
+            <span style="font-size:0.72rem; color:var(--muted);">Hold to drive, release to brake</span>
+        </div>
+        <div class="dpad">
+            <div class="empty-cell"></div>
+            <button type="button" class="dpad-btn" id="btnFwd">▲</button>
+            <div class="empty-cell"></div>
+
+            <button type="button" class="dpad-btn" id="btnLeft">◀</button>
+            <button type="button" class="dpad-btn stop" id="btnStop">STOP</button>
+            <button type="button" class="dpad-btn" id="btnRight">▶</button>
+
+            <div class="empty-cell"></div>
+            <button type="button" class="dpad-btn" id="btnBack">▼</button>
+            <div class="empty-cell"></div>
+        </div>
+    </div>
+
+    <!-- TELEMETRY -->
+    <div class="card">
+        <div class="card-title">
+            <span>📊 Rover Telemetry (ESP32)</span>
+            <span id="teleUpdate" style="font-size:0.7rem; color:var(--muted);">--</span>
+        </div>
+        <div class="telemetry-grid">
+            <div class="tele-box">
+                <div class="tele-label">🌡️ Temperature</div>
+                <div class="tele-val" id="valTemp">-- °C</div>
+            </div>
+            <div class="tele-box">
+                <div class="tele-label">💧 Humidity</div>
+                <div class="tele-val" id="valHum">-- %</div>
+            </div>
+            <div class="tele-box">
+                <div class="tele-label">🌱 Soil Moisture</div>
+                <div class="tele-val" id="valSoil">--</div>
+            </div>
+            <div class="tele-box">
+                <div class="tele-label">📏 Obstacle Range</div>
+                <div class="tele-val" id="valDist">-- cm</div>
+            </div>
+            <div class="tele-box">
+                <div class="tele-label">☀️ Light (LDR)</div>
+                <div class="tele-val" id="valLdr">--</div>
+            </div>
+            <div class="tele-box">
+                <div class="tele-label">🚿 Irrigation Pump</div>
+                <div class="tele-val" id="valPump">OFF</div>
+            </div>
+        </div>
+
+        <div class="btn-group" style="margin-top:10px;">
+            <button type="button" class="btn" onclick="sendRoverCommand('/pumpOn')">Pump ON</button>
+            <button type="button" class="btn" onclick="sendRoverCommand('/pumpOff')">Pump OFF</button>
+        </div>
+
+        <div style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:13px; font-weight:600; color:var(--accent);">🌱 Soil Probe Servo (GPIO 25)</span>
+                <span id="valProbeMobile" style="font-size:14px; font-weight:700; color:#4ade80;">90°</span>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" onclick="sendRoverCommand('/probe/retract')">⬆ Retract (Drive)</button>
+                <button type="button" class="btn btn-primary" style="background:#16a34a;" onclick="sendRoverCommand('/probe/deploy')">⬇ Deploy (Soil)</button>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button type="button" class="btn" style="flex:1;" onclick="stepProbeMobile(-10)">-10° Up</button>
+                <button type="button" class="btn" style="flex:1;" onclick="sendRoverCommand('/probe/angle?val=90')">90° Mid</button>
+                <button type="button" class="btn" style="flex:1;" onclick="stepProbeMobile(10)">+10° Down</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal">
+    <div class="modal-box">
+        <h3 style="margin-bottom:12px; color:var(--accent);">⚙ Rover IP Configuration</h3>
+        <div class="form-group">
+            <label>Main ESP32 IP (Motors & Sensors)</label>
+            <input type="text" id="cfgMainEsp" value="192.168.93.164">
+        </div>
+        <div class="form-group">
+            <label>ESP32-CAM IP (Camera Stream)</label>
+            <input type="text" id="cfgCamEsp" value="192.168.93.28">
+        </div>
+        <div class="form-group">
+            <label>Laptop Dashboard URL (Optional)</label>
+            <input type="text" id="cfgLaptop" value="http://192.168.93.173:5001/">
+        </div>
+        <div class="btn-group">
+            <button type="button" class="btn primary" onclick="saveSettings()">Save & Reconnect</button>
+            <button type="button" class="btn" onclick="switchToLaptopMode()">Open Laptop Dashboard</button>
+            <button type="button" class="btn" onclick="closeSettings()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION & PERSISTENCE
+// ============================================================
+let MAIN_ESP_IP = localStorage.getItem('main_esp_ip') || "192.168.93.164";
+let CAM_ESP_IP = localStorage.getItem('cam_esp_ip') || "192.168.93.28";
+let LAPTOP_URL = localStorage.getItem('laptop_url') || "http://192.168.93.173:5001/";
+
+document.getElementById('cfgMainEsp').value = MAIN_ESP_IP;
+document.getElementById('cfgCamEsp').value = CAM_ESP_IP;
+document.getElementById('cfgLaptop').value = LAPTOP_URL;
+
+function saveSettings() {
+    MAIN_ESP_IP = document.getElementById('cfgMainEsp').value.trim();
+    CAM_ESP_IP = document.getElementById('cfgCamEsp').value.trim();
+    LAPTOP_URL = document.getElementById('cfgLaptop').value.trim();
+
+    localStorage.setItem('main_esp_ip', MAIN_ESP_IP);
+    localStorage.setItem('cam_esp_ip', CAM_ESP_IP);
+    localStorage.setItem('laptop_url', LAPTOP_URL);
+
+    if (window.Android && window.Android.startCamera) {
+        window.Android.startCamera(CAM_ESP_IP);
+    }
+
+    closeSettings();
+    updateTelemetry();
+    if (window.Android && window.Android.showToast) {
+        window.Android.showToast("Settings updated!");
+    }
+}
+
+function switchToLaptopMode() {
+    saveSettings();
+    window.location.href = LAPTOP_URL;
+}
+
+function openSettings() {
+    document.getElementById('settingsModal').style.display = 'block';
+}
+
+function closeSettings() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+// ============================================================
+// NATIVE HTTP BRIDGE OR BROWSER FETCH
+// ============================================================
+function sendRoverCommand(endpoint) {
+    const url = "http://" + MAIN_ESP_IP + endpoint;
+    if (window.Android && window.Android.sendCommand) {
+        window.Android.sendCommand(url);
+    } else {
+        fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" }).catch(()=>{});
+    }
+}
+
+async function fetchRoverJson(endpoint) {
+    const url = "http://" + MAIN_ESP_IP + endpoint;
+    if (window.Android && window.Android.fetchUrl) {
+        const text = window.Android.fetchUrl(url);
+        if (text) {
+            try { return JSON.parse(text); } catch(e){}
+        }
+        return null;
+    } else {
+        try {
+            const res = await fetch(url, { method: "GET", cache: "no-store" });
+            return await res.json();
+        } catch(e) {
+            return null;
+        }
+    }
+}
+
+// ============================================================
+// CAMERA STREAM LOOP (CACHED FROM NATIVE BACKGROUND WORKER)
+// ============================================================
+const cameraFeed = document.getElementById('cameraFeed');
+const aiStatusBadge = document.getElementById('aiStatus');
+
+if (window.Android && window.Android.startCamera) {
+    window.Android.startCamera(CAM_ESP_IP);
+}
+
+let lastRenderedFrame = "";
+let hasReceivedFirstFrame = false;
+let isCamLoading = false;
+
+function renderCameraLoop() {
+    if (window.Android && window.Android.getLatestFrame) {
+        const frame = window.Android.getLatestFrame();
+        const isLive = window.Android.isCameraLive();
+
+        if (frame && frame !== lastRenderedFrame) {
+            lastRenderedFrame = frame;
+            cameraFeed.src = frame;
+            hasReceivedFirstFrame = true;
+        }
+
+        if (isLive && hasReceivedFirstFrame) {
+            aiStatusBadge.innerText = "Camera: Live";
+            aiStatusBadge.className = "stream-badge";
+        } else {
+            aiStatusBadge.innerText = "Camera: Connecting (" + CAM_ESP_IP + ")...";
+            aiStatusBadge.className = "stream-badge err";
+        }
+    } else {
+        // High-performance double-buffered capture loop for Android WebView
+        if (!isCamLoading) {
+            isCamLoading = true;
+            const nextImg = new Image();
+            nextImg.onload = () => {
+                cameraFeed.src = nextImg.src;
+                isCamLoading = false;
+                if (aiStatusBadge) {
+                    aiStatusBadge.innerText = "Camera: Live";
+                    aiStatusBadge.className = "stream-badge";
+                }
+            };
+            nextImg.onerror = () => {
+                isCamLoading = false;
+                if (aiStatusBadge) {
+                    aiStatusBadge.innerText = "Camera: Connecting (" + CAM_ESP_IP + ")...";
+                    aiStatusBadge.className = "stream-badge err";
+                }
+            };
+            nextImg.src = "http://" + CAM_ESP_IP + "/capture?t=" + Date.now();
+        }
+    }
+
+    setTimeout(renderCameraLoop, 150);
+}
+renderCameraLoop();
+
+// ============================================================
+// ON-DEVICE SNAPDRAGON AI PLANT PATHOLOGY SCANNER
+// ============================================================
+let lastHumidity = 60.0;
+let lastSoil = 2500.0;
+let autoScanActive = false;
+let autoScanTimer = null;
+
+function triggerScan() {
+    const btn = document.getElementById('btnScan');
+    const hTitle = document.getElementById('healthTitle');
+    const hRx = document.getElementById('healthRx');
+
+    btn.disabled = true;
+    hTitle.innerText = "⏳ Snapdragon AI Analyzing Foliage...";
+    hTitle.style.color = "#ffc107";
+    hRx.innerText = "Capturing frame, computing chlorophyll reflectance and scanning for fungal lesion morphology...";
+
+    setTimeout(() => {
+        if (window.Android && window.Android.scanPlantHealth) {
+            const jsonText = window.Android.scanPlantHealth(CAM_ESP_IP, lastHumidity, lastSoil);
+            btn.disabled = false;
+            if (!jsonText) {
+                hTitle.innerText = "❌ Scan Failed";
+                hTitle.style.color = "#dc3545";
+                hRx.innerText = "No response from Android vision engine. Ensure camera is powered.";
+                return;
+            }
+            try {
+                const data = JSON.parse(jsonText);
+                renderScanResults(data);
+            } catch (e) {
+                hTitle.innerText = "❌ Error Parsing AI Output";
+                hTitle.style.color = "#dc3545";
+                hRx.innerText = String(e);
+            }
+        } else {
+            btn.disabled = false;
+            hTitle.innerText = "Native AI Engine Unavailable";
+            hRx.innerText = "Run this inside the AgriRover Android App on your Poco F1.";
+        }
+    }, 50);
+}
+
+function renderScanResults(data) {
+    const hTitle = document.getElementById('healthTitle');
+    const hRx = document.getElementById('healthRx');
+    const canvas = document.getElementById('overlayCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = cameraFeed.clientWidth || 320;
+    canvas.height = cameraFeed.clientHeight || 240;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!data.success) {
+        hTitle.innerText = "❌ Camera Error";
+        hTitle.style.color = "#dc3545";
+        hRx.innerText = data.error || "Cannot reach camera.";
+        return;
+    }
+
+    if (!data.leaf_detected) {
+        hTitle.innerText = data.summary || "❓ No Leaf Detected";
+        hTitle.style.color = "#ffc107";
+        hRx.innerText = data.treatment || "Hold crop foliage closer to camera.";
+        return;
+    }
+
+    // Leaf Detected & Diagnosed
+    const color = data.color || "#28a745";
+    hTitle.innerText = (data.severity > 0 ? "⚠️ " : "✅ ") + data.disease;
+    hTitle.style.color = color;
+    hRx.innerHTML = "<strong>Treatment Protocol:</strong> " + data.treatment;
+
+    // Draw ALL detected leaf bounding boxes (just like OpenCV & YOLO on the laptop)
+    const leaves = data.leaves || [];
+    for (let i = 0; i < leaves.length; i++) {
+        const lf = leaves[i];
+        if (!lf.box || lf.box.length !== 4) continue;
+
+        const boxX = (lf.box[0] / 100.0) * canvas.width;
+        const boxY = (lf.box[1] / 100.0) * canvas.height;
+        const boxW = (lf.box[2] / 100.0) * canvas.width;
+        const boxH = (lf.box[3] / 100.0) * canvas.height;
+        const lfColor = lf.color || "#28a745";
+
+        // Tight Bounding box
+        ctx.strokeStyle = lfColor;
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        // Label banner background
+        const bannerW = Math.min(boxW + 8, 200);
+        ctx.fillStyle = lfColor;
+        ctx.fillRect(boxX, Math.max(0, boxY - 20), bannerW, 20);
+
+        // Label text
+        ctx.fillStyle = (lfColor === "#ffffff" ? "#000000" : "#ffffff");
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText(lf.label, boxX + 4, Math.max(14, boxY - 5));
+    }
+}
+
+function toggleAutoScan() {
+    autoScanActive = !autoScanActive;
+    const btn = document.getElementById('btnAutoScan');
+    if (autoScanActive) {
+        btn.innerText = "Auto-AI: ON";
+        btn.classList.add('primary');
+        triggerScan();
+        autoScanTimer = setInterval(triggerScan, 3000);
+    } else {
+        btn.innerText = "Auto-AI: OFF";
+        btn.classList.remove('primary');
+        if (autoScanTimer) clearInterval(autoScanTimer);
+        const canvas = document.getElementById('overlayCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+// ============================================================
+// HOLD-TO-DRIVE RC RADIO CONTROLS
+// ============================================================
+let activeDrive = null;
+let rcHeartbeat = null;
+
+function drive(dir) {
+    if (activeDrive === dir) return;
+    activeDrive = dir;
+    updateDpadUI(dir);
+
+    sendRoverCommand("/" + dir);
+
+    if (rcHeartbeat) clearInterval(rcHeartbeat);
+    rcHeartbeat = setInterval(() => {
+        if (activeDrive) {
+            sendRoverCommand("/" + activeDrive);
+        }
+    }, 250);
+}
+
+function brake() {
+    if (!activeDrive) return;
+    activeDrive = null;
+    if (rcHeartbeat) {
+        clearInterval(rcHeartbeat);
+        rcHeartbeat = null;
+    }
+    updateDpadUI(null);
+    sendRoverCommand("/stop");
+}
+
+function updateDpadUI(dir) {
+    const map = {
+        'forward': document.getElementById('btnFwd'),
+        'backward': document.getElementById('btnBack'),
+        'left': document.getElementById('btnLeft'),
+        'right': document.getElementById('btnRight')
+    };
+    for (const [k, btn] of Object.entries(map)) {
+        if (btn) {
+            if (k === dir) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+    }
+}
+
+function bindHold(el, dir) {
+    if (!el) return;
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); drive(dir); }, { passive: false });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); brake(); });
+    el.addEventListener('touchcancel', (e) => { brake(); });
+    el.addEventListener('mousedown', (e) => { e.preventDefault(); drive(dir); });
+    el.addEventListener('mouseup', (e) => { e.preventDefault(); brake(); });
+    el.addEventListener('mouseleave', () => { if (activeDrive === dir) brake(); });
+}
+
+bindHold(document.getElementById('btnFwd'), 'forward');
+bindHold(document.getElementById('btnBack'), 'backward');
+bindHold(document.getElementById('btnLeft'), 'left');
+bindHold(document.getElementById('btnRight'), 'right');
+document.getElementById('btnStop').addEventListener('click', () => { brake(); });
+
+window.addEventListener('blur', () => { brake(); });
+
+// ============================================================
+// TELEMETRY POLLING
+// ============================================================
+async function updateTelemetry() {
+    const data = await fetchRoverJson("/data");
+    const dot = document.getElementById('connDot');
+    const txt = document.getElementById('connText');
+
+    if (data) {
+        dot.classList.remove('offline');
+        txt.innerText = "Rover Online";
+
+        if (data.temperature !== undefined) {
+            document.getElementById('valTemp').innerText = data.temperature + " °C";
+        }
+        if (data.humidity !== undefined) {
+            document.getElementById('valHum').innerText = data.humidity + " %";
+            lastHumidity = parseFloat(data.humidity) || 60.0;
+        }
+        if (data.soil !== undefined) {
+            const sVal = Number(data.soil);
+            lastSoil = sVal;
+            const status = sVal > 3000 ? " (DRY)" : " (WET)";
+            document.getElementById('valSoil').innerText = sVal + status;
+        }
+        if (data.distance !== undefined) {
+            document.getElementById('valDist').innerText = Number(data.distance).toFixed(1) + " cm";
+        }
+        if (data.ldr !== undefined) {
+            document.getElementById('valLdr').innerText = data.ldr;
+        }
+        if (data.pump !== undefined) {
+            document.getElementById('valPump').innerText = data.pump ? "RUNNING" : "OFF";
+            document.getElementById('valPump').style.color = data.pump ? "#68d391" : "#fff";
+        }
+        if (data.tilt !== undefined || data.probeAngle !== undefined) {
+            currentProbeAngle = data.probeAngle !== undefined ? data.probeAngle : data.tilt;
+            const el = document.getElementById('valProbeMobile');
+            if (el) el.innerText = currentProbeAngle + '°';
+        }
+        document.getElementById('teleUpdate').innerText = new Date().toLocaleTimeString();
+    } else {
+        dot.classList.add('offline');
+        txt.innerText = "Connecting...";
+    }
+}
+setInterval(updateTelemetry, 1500);
+
+let currentProbeAngle = 90;
+function stepProbeMobile(delta) {
+    currentProbeAngle = Math.max(20, Math.min(160, currentProbeAngle + delta));
+    sendRoverCommand('/probe/angle?val=' + currentProbeAngle);
+    const el = document.getElementById('valProbeMobile');
+    if (el) el.innerText = currentProbeAngle + '°';
+}
+</script>
+
+</body>
+</html>

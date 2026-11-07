@@ -1,3 +1,29 @@
+# Environment & Secrets
 .env
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python Cache
 __pycache__/
 *.pyc
+
+# Temporary scratch media
+test_*.jpg
+check_*.jpg
+phone_screen*.png
+live_dashboard_frame.jpg
+
+# Compiler debug symbols and intermediate objects
+*.elf
+*.map
+android_build/obj/
+android_build/dex/
+android_build/compiled_res.zip
+android_build/app-unaligned.apk
+android_build/app-aligned.apk
+
+# Archives
+*.zip

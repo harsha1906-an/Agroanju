@@ -64,10 +64,11 @@ DHT dht(
 
 
 // ============================================================
-// SOIL
+// SOIL & LDR
 // ============================================================
 
 #define SOIL_PIN 34
+#define LDR_PIN 35
 
 const int SOIL_THRESHOLD = 3000;
 
@@ -76,17 +77,18 @@ const int SOIL_THRESHOLD = 3000;
 // PUMP
 // ============================================================
 
-#define RELAY_PIN 23
+#define RELAY_PIN 33
 
 bool pumpOn = false;
+bool relayActiveLow = true;
 
 
 // ============================================================
 // ULTRASONIC
 // ============================================================
 
-#define TRIG 32
-#define ECHO 33
+#define TRIG -1
+#define ECHO -1
 
 float distance = 0;
 
@@ -132,11 +134,11 @@ Servo tiltServo;
 const int PAN_MIN = 30;
 const int PAN_MAX = 150;
 
-const int TILT_MIN = 60;
-const int TILT_MAX = 120;
+const int TILT_MIN = 20;
+const int TILT_MAX = 160;
 
 
-const int SERVO_STEP = 10;
+const int SERVO_STEP = 5;
 
 
 int panAngle = 90;
@@ -172,7 +174,7 @@ const int SCAN_STEP = 2;
 // DRIVE MODE
 // ============================================================
 
-bool manualMode = false;
+bool manualMode = true;
 
 
 // ============================================================
@@ -209,134 +211,68 @@ const unsigned long OLED_INTERVAL = 1000;
 // MOTORS
 // ============================================================
 
+unsigned long lastDriveTime = 0;
+bool isDriving = false;
+const unsigned long DRIVE_WATCHDOG_MS = 600; // Auto-stop failsafe if no keepalive within 600ms
+
 void forward() {
-
   if (obstacleDetected) {
-
     stopMotor();
-
     return;
-
   }
-
-
-  digitalWrite(
-    IN1,
-    HIGH
-  );
-
-  digitalWrite(
-    IN2,
-    LOW
-  );
-
-
-  digitalWrite(
-    IN3,
-    HIGH
-  );
-
-  digitalWrite(
-    IN4,
-    LOW
-  );
-
+  lastDriveTime = millis();
+  isDriving = true;
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
 }
-
 
 void left() {
-
   if (obstacleDetected) {
-
     stopMotor();
-
     return;
-
   }
-
-
-  digitalWrite(
-    IN1,
-    LOW
-  );
-
-  digitalWrite(
-    IN2,
-    HIGH
-  );
-
-
-  digitalWrite(
-    IN3,
-    HIGH
-  );
-
-  digitalWrite(
-    IN4,
-    LOW
-  );
-
+  lastDriveTime = millis();
+  isDriving = true;
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
 }
-
 
 void right() {
-
   if (obstacleDetected) {
-
     stopMotor();
-
     return;
-
   }
-
-
-  digitalWrite(
-    IN1,
-    HIGH
-  );
-
-  digitalWrite(
-    IN2,
-    LOW
-  );
-
-
-  digitalWrite(
-    IN3,
-    LOW
-  );
-
-  digitalWrite(
-    IN4,
-    HIGH
-  );
-
+  lastDriveTime = millis();
+  isDriving = true;
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
 }
 
-
 void stopMotor() {
+  isDriving = false;
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+}
 
-  digitalWrite(
-    IN1,
-    LOW
-  );
-
-  digitalWrite(
-    IN2,
-    LOW
-  );
-
-
-  digitalWrite(
-    IN3,
-    LOW
-  );
-
-  digitalWrite(
-    IN4,
-    LOW
-  );
-
+void backward() {
+  if (obstacleDetected) {
+    stopMotor();
+    return;
+  }
+  lastDriveTime = millis();
+  isDriving = true;
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
 }
 
 
@@ -348,7 +284,7 @@ void pumpON() {
 
   digitalWrite(
     RELAY_PIN,
-    LOW
+    relayActiveLow ? LOW : HIGH
   );
 
   pumpOn = true;
@@ -360,7 +296,7 @@ void pumpOFF() {
 
   digitalWrite(
     RELAY_PIN,
-    HIGH
+    relayActiveLow ? HIGH : LOW
   );
 
   pumpOn = false;
@@ -395,12 +331,28 @@ void handlePumpOff() {
 
 }
 
+void handlePumpInvert() {
+  relayActiveLow = !relayActiveLow;
+  pumpOFF();
+  server.send(
+    200,
+    "text/plain",
+    relayActiveLow ? "RELAY: ACTIVE LOW" : "RELAY: ACTIVE HIGH"
+  );
+}
+
 
 // ============================================================
 // ULTRASONIC
 // ============================================================
 
 void updateDistance() {
+
+  if (TRIG < 0 || ECHO < 0) {
+    distance = 0;
+    obstacleDetected = false;
+    return;
+  }
 
   digitalWrite(
     TRIG,
@@ -653,8 +605,9 @@ void updateServos() {
 
 void updateGPS() {
 
+  int count = 0;
   while (
-    gpsSerial.available()
+    gpsSerial.available() && count++ < 100
   ) {
 
     gps.encode(
@@ -1109,6 +1062,14 @@ void handleData() {
       tiltAngle
     );
 
+  json +=
+    ",\"probeAngle\":";
+
+  json +=
+    String(
+      tiltAngle
+    );
+
 
   // GPS
 
@@ -1276,6 +1237,13 @@ void handleRight() {
     "RIGHT"
   );
 
+}
+
+
+void handleBackward() {
+  manualMode = true;
+  backward();
+  server.send(200, "text/plain", "BACKWARD");
 }
 
 
@@ -1465,6 +1433,43 @@ void handleCenter() {
 
 
 // ============================================================
+// SOIL PROBE SERVO HANDLERS (GPIO 25)
+// ============================================================
+
+void handleProbeRetract() {
+  scanMode = false;
+  targetTilt = 55;
+  server.send(200, "text/plain", "PROBE RETRACTED (55 deg)");
+}
+
+void handleProbeDeploy() {
+  scanMode = false;
+  targetTilt = 135;
+  server.send(200, "text/plain", "PROBE DEPLOYED (135 deg)");
+}
+
+void handleProbeAngle() {
+  scanMode = false;
+  if (server.hasArg("val")) {
+    int val = server.arg("val").toInt();
+    targetTilt = constrain(val, TILT_MIN, TILT_MAX);
+    server.send(200, "text/plain", String("PROBE ANGLE SET TO ") + targetTilt);
+    return;
+  }
+  server.send(400, "text/plain", "Missing val param");
+}
+
+void handleServoUp() {
+  handleTiltUp();
+}
+
+void handleServoDown() {
+  handleTiltDown();
+}
+
+
+
+// ============================================================
 // SCAN
 // ============================================================
 
@@ -1579,8 +1584,17 @@ void connectWiFi() {
   else {
 
     Serial.println(
-      "WiFi connection failed"
+      "WiFi connection failed to 'phone1'. Starting AP hotspot 'AGRO-ROVER'..."
     );
+    WiFi.disconnect(true);
+    delay(100);
+    WiFi.mode(WIFI_AP);
+    IPAddress apIP(192, 168, 4, 1);
+    IPAddress netMsk(255, 255, 255, 0);
+    WiFi.softAPConfig(apIP, apIP, netMsk);
+    WiFi.softAP("AGRO-ROVER", "12345678", 1, 0, 4);
+    Serial.print("Access Point started! AP IP: ");
+    Serial.println(WiFi.softAPIP());
 
   }
 
@@ -1672,21 +1686,22 @@ void setup() {
   // ULTRASONIC
   // ----------------------------------------------------------
 
-  pinMode(
-    TRIG,
-    OUTPUT
-  );
+  if (TRIG >= 0 && ECHO >= 0) {
+    pinMode(
+      TRIG,
+      OUTPUT
+    );
 
-  pinMode(
-    ECHO,
-    INPUT
-  );
+    pinMode(
+      ECHO,
+      INPUT
+    );
 
-
-  digitalWrite(
-    TRIG,
-    LOW
-  );
+    digitalWrite(
+      TRIG,
+      LOW
+    );
+  }
 
 
   // ----------------------------------------------------------
@@ -1695,6 +1710,11 @@ void setup() {
 
   pinMode(
     SOIL_PIN,
+    INPUT
+  );
+
+  pinMode(
+    LDR_PIN,
     INPUT
   );
 
@@ -1716,6 +1736,7 @@ void setup() {
   // DHT
   // ----------------------------------------------------------
 
+  pinMode(DHTPIN, INPUT_PULLUP);
   dht.begin();
 
 
@@ -1877,6 +1898,13 @@ void setup() {
     handleStop
   );
 
+  server.on(
+    "/backward",
+    handleBackward
+  );
+
+
+
 
   server.on(
     "/auto",
@@ -1913,6 +1941,41 @@ void setup() {
     handleTiltDown
   );
 
+  server.on(
+    "/probe/retract",
+    handleProbeRetract
+  );
+
+  server.on(
+    "/probe/deploy",
+    handleProbeDeploy
+  );
+
+  server.on(
+    "/probe/angle",
+    handleProbeAngle
+  );
+
+  server.on(
+    "/probe/up",
+    handleTiltUp
+  );
+
+  server.on(
+    "/probe/down",
+    handleTiltDown
+  );
+
+  server.on(
+    "/servoUp",
+    handleServoUp
+  );
+
+  server.on(
+    "/servoDown",
+    handleServoDown
+  );
+
 
   server.on(
     "/center",
@@ -1925,15 +1988,29 @@ void setup() {
     handleScan
   );
   server.on(
-  "/pumpOn",
-  handlePumpOn
-);
-
+    "/pumpOn",
+    handlePumpOn
+  );
 
   server.on(
-  "/pumpOff",
-  handlePumpOff
-);
+    "/pump/on",
+    handlePumpOn
+  );
+
+  server.on(
+    "/pumpOff",
+    handlePumpOff
+  );
+
+  server.on(
+    "/pump/off",
+    handlePumpOff
+  );
+
+  server.on(
+    "/pumpInvert",
+    handlePumpInvert
+  );
 
   // ----------------------------------------------------------
   // START SERVER
@@ -2045,11 +2122,181 @@ void setup() {
 //   WiFi.begin(ssid, password);
 // }
 // ============================================================
+// DIAGNOSTICS & SERIAL COMMANDS
+// ============================================================
+
+void runDiagnostics() {
+  Serial.println("\n========================================");
+  Serial.println(">>> AGRO-VATORS HARDWARE DIAGNOSTICS <<<");
+  Serial.println("========================================");
+
+  // 1. Line Sensors
+  int l = digitalRead(LS);
+  int c = digitalRead(CS);
+  int r = digitalRead(RS);
+  Serial.printf("[1/5] Line Sensors: Left=%d | Center=%d | Right=%d\n", l, c, r);
+
+  // 2. Ultrasonic Sensor
+  updateDistance();
+  Serial.printf("[2/5] Ultrasonic Distance: %.1f cm (Obstacle=%s)\n", distance, obstacleDetected ? "YES" : "NO");
+
+  // 3. Soil Moisture
+  int soilVal = analogRead(SOIL_PIN);
+  Serial.printf("[3/5] Soil Moisture: %d (Status: %s)\n", soilVal, soilVal < SOIL_THRESHOLD ? "WET" : "DRY");
+
+  // 4. DHT11
+  float t = dht.readTemperature();
+  float h = dht.readHumidity();
+  if (isnan(t) || isnan(h)) {
+    Serial.println("[4/5] DHT11: Sensor reading failed / unplugged");
+  } else {
+    Serial.printf("[4/5] DHT11: Temperature=%.1f C | Humidity=%.1f %%\n", t, h);
+  }
+
+  // 5. Servos
+  Serial.println("[5/5] Servos: Centered at 90 deg");
+
+  // 6. LDR Sunlight Sensor
+  int d_ldr = digitalRead(LDR_PIN);
+  int a_ldr = analogRead(LDR_PIN);
+  Serial.printf("[6/6] LDR Sunlight: Digital=%d (%s) | Analog=%d\n", d_ldr, (d_ldr == 0 ? "BRIGHT / DAYLIGHT" : "DARK / SHADE"), a_ldr);
+
+  Serial.println("========================================");
+  Serial.println(">>> DIAGNOSTICS COMPLETE <<<");
+  Serial.println("========================================\n");
+}
+
+void runMotorTest() {
+  Serial.println("\n>>> RUNNING MOTOR TEST (0.4s pulses) <<<");
+  Serial.println("1. Forward (0.4s)...");
+  forward();
+  delay(400);
+  stopMotor();
+  delay(300);
+
+  Serial.println("2. Backward (0.4s)...");
+  backward();
+  delay(400);
+  stopMotor();
+  delay(300);
+
+  Serial.println("3. Turn Left (0.4s)...");
+  left();
+  delay(400);
+  stopMotor();
+  delay(300);
+
+  Serial.println("4. Turn Right (0.4s)...");
+  right();
+  delay(400);
+  stopMotor();
+  delay(300);
+
+  Serial.println("5. Testing Pump Relay (0.5s)...");
+  pumpON();
+  delay(500);
+  pumpOFF();
+  Serial.println(">>> MOTOR & PUMP TEST FINISHED - ALL OFF <<<\n");
+}
+
+void handleSerialCommands() {
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd.length() == 0) return;
+
+    if (cmd == "TEST" || cmd == "TEST_ALL") {
+      runDiagnostics();
+      runMotorTest();
+    } else if (cmd == "TEST_SENSORS") {
+      runDiagnostics();
+    } else if (cmd == "TEST_MOTORS") {
+      runMotorTest();
+    } else if (cmd == "F" || cmd == "FORWARD") {
+      forward(); Serial.println("OK: FORWARD");
+    } else if (cmd == "B" || cmd == "BACKWARD") {
+      backward(); Serial.println("OK: BACKWARD");
+    } else if (cmd == "L" || cmd == "LEFT") {
+      left(); Serial.println("OK: LEFT");
+    } else if (cmd == "R" || cmd == "RIGHT") {
+      right(); Serial.println("OK: RIGHT");
+    } else if (cmd == "S" || cmd == "STOP") {
+      stopMotor(); Serial.println("OK: STOP");
+    } else if (cmd == "PUMP_ON") {
+      pumpON(); Serial.println("OK: PUMP_ON");
+    } else if (cmd == "PUMP_OFF") {
+      pumpOFF(); Serial.println("OK: PUMP_OFF");
+    } else if (cmd == "PUMP_INVERT") {
+      relayActiveLow = !relayActiveLow;
+      pumpOFF();
+      Serial.printf("OK: RELAY ACTIVE %s\n", relayActiveLow ? "LOW" : "HIGH");
+    } else if (cmd.startsWith("SERVO13:")) {
+      int ang = cmd.substring(8).toInt();
+      targetPan = ang;
+      panAngle = ang;
+      panServo.write(ang);
+      Serial.printf("Servo (GPIO 13) moved to %d deg\n", ang);
+    } else if (cmd.startsWith("SERVO25:")) {
+      int ang = cmd.substring(8).toInt();
+      targetTilt = ang;
+      tiltAngle = ang;
+      tiltServo.write(ang);
+      Serial.printf("Servo (GPIO 25) moved to %d deg\n", ang);
+    } else if (cmd == "DEPLOY") {
+      targetTilt = 135;
+      tiltAngle = 135;
+      tiltServo.write(135);
+      Serial.println("OK: PROBE DEPLOYED (135 deg)");
+    } else if (cmd == "RETRACT") {
+      targetTilt = 55;
+      tiltAngle = 55;
+      tiltServo.write(55);
+      Serial.println("OK: PROBE RETRACTED (55 deg)");
+    } else if (cmd == "SWEEP_SERVOS") {
+      Serial.println("Sweeping GPIO 13 and GPIO 25 servos back and forth...");
+      for (int a = 50; a <= 130; a += 10) {
+        targetPan = a; panAngle = a; panServo.write(a);
+        targetTilt = a; tiltAngle = a; tiltServo.write(a);
+        delay(80);
+      }
+      for (int a = 130; a >= 50; a -= 10) {
+        targetPan = a; panAngle = a; panServo.write(a);
+        targetTilt = a; tiltAngle = a; tiltServo.write(a);
+        delay(80);
+      }
+      targetPan = 90; panAngle = 90; panServo.write(90);
+      targetTilt = 90; tiltAngle = 90; tiltServo.write(90);
+      Serial.println("Servo sweep completed! Reset to 90 deg.");
+    } else if (cmd == "TEST_LDR") {
+      int d_ldr = digitalRead(LDR_PIN);
+      int a_ldr = analogRead(LDR_PIN);
+      Serial.printf("LDR: Digital=%d (%s) | Analog=%d\n", d_ldr, (d_ldr == 0 ? "BRIGHT (Light Detected)" : "DARK (Low Light)"), a_ldr);
+    } else if (cmd == "STATUS") {
+      updateDistance();
+      int d_ldr = digitalRead(LDR_PIN);
+      Serial.printf("STATUS: Temp=%.1f, Hum=%.1f, Soil=%d, Dist=%.1f, LDR=%d, L=%d, C=%d, R=%d\n",
+        cachedTemperature, cachedHumidity, cachedSoil, distance, d_ldr,
+        digitalRead(LS), digitalRead(CS), digitalRead(RS));
+    } else {
+      Serial.println("Unknown Serial Command: " + cmd);
+    }
+  }
+}
+
+// ============================================================
 // LOOP
 // ============================================================
 
 void loop() {
- if (wifiDisconnected &&
+  handleSerialCommands();
+
+  // RC Failsafe Watchdog: Auto-stop if no command received within 600ms
+  if (isDriving && (millis() - lastDriveTime > DRIVE_WATCHDOG_MS)) {
+    stopMotor();
+  }
+
+  if (WiFi.getMode() == WIFI_STA &&
+      wifiDisconnected &&
       millis() >= wifiReconnectTime &&
       WiFi.status() != WL_CONNECTED) {
 
@@ -2097,6 +2344,7 @@ void loop() {
   updateOLED();
 
 
-  delay(2);
+  delay(10);
+  yield();
 
 }

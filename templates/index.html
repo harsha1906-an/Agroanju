@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AGRO-VATORS — Rover Console</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#28a745">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AgriRover">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -15,14 +22,17 @@
         <h1><span id="ag">AGRI</span>-VISE</h1>
         <div class="subtitle" data-i18n="subtitle">AI-powered agricultural rover console</div>
     </div>
-    <div class="rig"><span id="num">01 </span><span id="ag"> —AGRI</span>-VISE</div>
-    <div class="language-selector">
-        <label for="languageSelect" data-i18n="language">Language</label>
-        <select id="languageSelect" onchange="changeLanguage(this.value)">
-            <option value="en">English</option>
-            <option value="hi">हिंदी</option>
-            <option value="bn">বাংলা</option>
-        </select>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" id="btnInstallPwa" style="display:none; padding:7px 14px; font-size:0.85rem; background:#28a745; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:600;"><i class="fa-solid fa-download"></i> Install App</button>
+        <a id="btnDownloadApk" href="/download/AgriRover.apk" style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:0.85rem; background:#1b72e8; color:#fff; border:none; border-radius:4px; text-decoration:none; font-weight:600;"><i class="fa-brands fa-android"></i> Download APK</a>
+        <div class="language-selector">
+            <label for="languageSelect" data-i18n="language">Language</label>
+            <select id="languageSelect" onchange="changeLanguage(this.value)">
+                <option value="en">English</option>
+                <option value="hi">हिंदी</option>
+                <option value="bn">বাংলা</option>
+            </select>
+        </div>
     </div>
 </header>
 
@@ -39,14 +49,20 @@
 </div>
 
 <div class="panel">
-<h2><i class="fa-solid fa-gamepad"></i> <span data-i18n="driveControl">Drive Control</span></h2>
+<h2><i class="fa-solid fa-gamepad"></i> <span data-i18n="driveControl">RC Radio Control</span></h2>
 <div class="dpad">
 <div></div>
-<button type="button" onclick="sendCommand('/forward', this)"><i class="fa-solid fa-chevron-up"></i></button>
+<button type="button" id="rcForward" title="Hold W or Up to drive forward"><i class="fa-solid fa-chevron-up"></i></button>
 <div></div>
-<button type="button" onclick="sendCommand('/left', this)"><i class="fa-solid fa-chevron-left"></i></button>
-<button type="button" class="accent" onclick="sendCommand('/stop', this)"><i class="fa-solid fa-stop"></i></button>
-<button type="button" onclick="sendCommand('/right', this)"><i class="fa-solid fa-chevron-right"></i></button>
+<button type="button" id="rcLeft" title="Hold A or Left to turn left"><i class="fa-solid fa-chevron-left"></i></button>
+<button type="button" class="accent" id="rcStop" title="Spacebar: Emergency Stop"><i class="fa-solid fa-hand"></i></button>
+<button type="button" id="rcRight" title="Hold D or Right to turn right"><i class="fa-solid fa-chevron-right"></i></button>
+<div></div>
+<button type="button" id="rcBackward" title="Hold S or Down to reverse"><i class="fa-solid fa-chevron-down"></i></button>
+<div></div>
+</div>
+<div style="text-align:center; margin-top:10px; font-size:0.82rem; color:var(--muted);">
+<i class="fa-solid fa-keyboard"></i> <strong>Hold W / A / S / D or Arrow Keys</strong> to drive — release to stop!
 </div>
 </div>
 
@@ -75,10 +91,14 @@
 </div>
 
 <div class="panel">
-<h2><i class="fa-solid fa-seedling"></i> <span data-i18n="plantHealth">Plant Health</span></h2>
-<div id="health" class="value" style="font-size:1.35rem;">{{ health }}</div>
-<button type="button" class="primary" style="width:100%;" onclick="window.location.href='/scan'">
-<i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="scanPlant">Scan Plant</span>
+<h2><i class="fa-solid fa-seedling"></i> <span data-i18n="plantHealth">Plant Pathology & Disease Diagnosis</span></h2>
+<div id="health" class="value" style="font-size:1.25rem; font-weight:700;">{{ health }}</div>
+<div id="healthPrescription" class="info" style="margin-top:10px; font-size:0.85rem; line-height:1.45;">
+<strong><i class="fa-solid fa-prescription-bottle-medical"></i> Treatment & Protocol:</strong>
+<p id="treatmentText" style="margin:4px 0 0 0;">{{ health_details.treatment if health_details else "Hold a crop leaf in front of the camera and click Scan Plant." }}</p>
+</div>
+<button type="button" class="primary" style="width:100%; margin-top:10px;" onclick="runPlantScan(this)">
+<i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="scanPlant">Scan Plant for Disease</span>
 </button>
 </div>
 
@@ -109,6 +129,45 @@
   <button onclick="sendCommand('/pump/off', this)" data-i18n="pumpOff">Pump OFF</button>
 </div>
 </div>
+</div>
+</div>
+
+<div class="panel probe-panel">
+<h2><i class="fa-solid fa-vial-circle-check"></i> <span data-i18n="probeControl">Soil Moisture Probe Mechanism</span></h2>
+
+<div style="background:rgba(255,255,255,0.04); padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.08);">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <span><i class="fa-solid fa-compass-drafting"></i> Servo Angle (GPIO 25):</span>
+    <strong id="probeAngleDisplay" style="font-size:1.2rem; color:#4ade80;">{{ sensor.tilt }}°</strong>
+  </div>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <span><i class="fa-solid fa-shield-halved"></i> Probe Status:</span>
+    <span id="probeStatusBadge" class="badge badge-off">Retracted (Drive Mode)</span>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+  <button type="button" class="primary" style="background:#2563eb; padding:12px 6px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="sendProbeCommand('/probe/retract', this)">
+    <i class="fa-solid fa-arrow-up-from-bracket"></i> Retract (Drive)
+  </button>
+  <button type="button" class="primary" style="background:#16a34a; padding:12px 6px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="sendProbeCommand('/probe/deploy', this)">
+    <i class="fa-solid fa-arrow-down-to-bracket"></i> Deploy (Soil)
+  </button>
+</div>
+
+<div style="margin-top:8px;">
+  <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--muted); margin-bottom:6px;">
+    <span>20° (Tuck Up)</span>
+    <span>Angle: <strong id="sliderAngleVal" style="color:var(--text);">{{ sensor.tilt }}°</strong></span>
+    <span>160° (Ground In)</span>
+  </div>
+  <input type="range" id="probeAngleSlider" min="20" max="160" value="{{ sensor.tilt }}" style="width:100%; accent-color:#22c55e; cursor:pointer;" oninput="onProbeSliderInput(this.value)" onchange="onProbeSliderCommit(this.value)">
+</div>
+
+<div style="display:flex; gap:8px; margin-top:12px;">
+  <button type="button" style="flex:1;" onclick="stepProbeAngle(-5, this)"><i class="fa-solid fa-minus"></i> -5° Step</button>
+  <button type="button" style="flex:1;" onclick="setProbeAngle(90, this)"><i class="fa-solid fa-arrows-rotate"></i> 90° Mid</button>
+  <button type="button" style="flex:1;" onclick="stepProbeAngle(5, this)"><i class="fa-solid fa-plus"></i> +5° Step</button>
 </div>
 </div>
 

@@ -458,6 +458,46 @@ async function sendCommand(path, button) {
 }
 window.sendCommand = sendCommand;
 
+let isUserDraggingProbeSlider = false;
+
+function onProbeSliderInput(val) {
+    isUserDraggingProbeSlider = true;
+    const sliderVal = document.getElementById("sliderAngleVal");
+    if (sliderVal) sliderVal.innerText = val + "°";
+}
+
+async function onProbeSliderCommit(val) {
+    isUserDraggingProbeSlider = false;
+    await setProbeAngle(val);
+}
+
+async function setProbeAngle(angle, button) {
+    const val = parseInt(angle, 10);
+    const slider = document.getElementById("probeAngleSlider");
+    if (slider) slider.value = val;
+    const sliderVal = document.getElementById("sliderAngleVal");
+    if (sliderVal) sliderVal.innerText = val + "°";
+    await sendCommand("/probe/angle?val=" + val, button);
+}
+
+async function stepProbeAngle(delta, button) {
+    const slider = document.getElementById("probeAngleSlider");
+    const current = slider ? parseInt(slider.value, 10) : 90;
+    const target = Math.max(20, Math.min(160, current + delta));
+    await setProbeAngle(target, button);
+}
+
+async function sendProbeCommand(path, button) {
+    await sendCommand(path, button);
+}
+
+window.onProbeSliderInput = onProbeSliderInput;
+window.onProbeSliderCommit = onProbeSliderCommit;
+window.setProbeAngle = setProbeAngle;
+window.stepProbeAngle = stepProbeAngle;
+window.sendProbeCommand = sendProbeCommand;
+
+
 function requestLaptopLocation() {
     const status = document.getElementById("weatherLocationStatus");
     if (!navigator.geolocation) {
@@ -514,9 +554,39 @@ async function updateSensors() {
         document.getElementById("distance").innerText = data.distance;
         document.getElementById("mode").innerText = data.mode;
 
+        if (data.detection !== undefined) {
+            const detEl = document.getElementById("detection");
+            if (detEl) detEl.innerText = data.detection;
+        }
+
         const pump = document.getElementById("pump");
         pump.innerText = data.pump;
         pump.className = (data.pump && data.pump.toString().toUpperCase() === "ON") ? "badge badge-on" : "badge badge-off";
+
+        const probeAng = data.probeAngle !== undefined ? data.probeAngle : data.tilt;
+        if (probeAng !== undefined) {
+            const probeDisp = document.getElementById("probeAngleDisplay");
+            if (probeDisp) probeDisp.innerText = probeAng + "°";
+            if (!isUserDraggingProbeSlider) {
+                const slider = document.getElementById("probeAngleSlider");
+                if (slider) slider.value = probeAng;
+                const sVal = document.getElementById("sliderAngleVal");
+                if (sVal) sVal.innerText = probeAng + "°";
+            }
+            const badge = document.getElementById("probeStatusBadge");
+            if (badge) {
+                if (probeAng <= 65) {
+                    badge.innerText = "Retracted (Drive Safe)";
+                    badge.className = "badge badge-on";
+                } else if (probeAng >= 115) {
+                    badge.innerText = "Deployed (Soil In)";
+                    badge.className = "badge badge-primary";
+                } else {
+                    badge.innerText = "Custom Angle (" + probeAng + "°)";
+                    badge.className = "badge badge-warning";
+                }
+            }
+        }
 
         const gpsStatus = document.getElementById("gpsStatus");
         if (data.lat !== undefined && data.lon !== undefined) {
@@ -1077,9 +1147,240 @@ window.addEventListener("DOMContentLoaded", function() {
     updateSensors();
     updateIntelligence();
     loadSensorHistory();
+    setupRcControls();
 });
 
 setInterval(updateSensors, 1000);
 setInterval(updateIntelligence, 30000);
 setInterval(requestLaptopLocation, 600000);
 setInterval(loadSensorHistory, 10000);
+
+// ============================================================
+// PROPER RC CAR RADIO CONTROL (HOLD TO DRIVE, RELEASE TO STOP)
+// ============================================================
+let activeDrive = null;
+let rcHeartbeat = null;
+
+function rcDrive(dir) {
+    if (activeDrive === dir) return;
+    activeDrive = dir;
+    updateRcButtonsUI(dir);
+
+    // Immediate command
+    fetch(`/${dir}?t=${Date.now()}`, { method: 'GET', cache: 'no-store' }).catch(()=>{});
+
+    // Heartbeat every 250ms while held (keeps watchdog alive)
+    if (rcHeartbeat) clearInterval(rcHeartbeat);
+    rcHeartbeat = setInterval(() => {
+        if (activeDrive) {
+            fetch(`/${activeDrive}?t=${Date.now()}`, { method: 'GET', cache: 'no-store' }).catch(()=>{});
+        }
+    }, 250);
+}
+
+function rcStop() {
+    if (!activeDrive) return;
+    activeDrive = null;
+    if (rcHeartbeat) {
+        clearInterval(rcHeartbeat);
+        rcHeartbeat = null;
+    }
+    updateRcButtonsUI(null);
+    fetch(`/stop?t=${Date.now()}`, { method: 'GET', cache: 'no-store' }).catch(()=>{});
+}
+
+function updateRcButtonsUI(activeDir) {
+    const map = {
+        'forward': document.getElementById('rcForward'),
+        'backward': document.getElementById('rcBackward'),
+        'left': document.getElementById('rcLeft'),
+        'right': document.getElementById('rcRight'),
+    };
+    for (const [d, btn] of Object.entries(map)) {
+        if (!btn) continue;
+        if (d === activeDir) {
+            btn.style.background = '#28a745';
+            btn.style.color = '#fff';
+            btn.style.transform = 'scale(0.94)';
+        } else {
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.transform = '';
+        }
+    }
+}
+
+function setupRcControls() {
+    const bindBtn = (id, dir) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('mousedown', (e) => { e.preventDefault(); rcDrive(dir); });
+        btn.addEventListener('mouseup', (e) => { e.preventDefault(); rcStop(); });
+        btn.addEventListener('mouseleave', () => { if (activeDrive === dir) rcStop(); });
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); rcDrive(dir); }, { passive: false });
+        btn.addEventListener('touchend', (e) => { e.preventDefault(); rcStop(); });
+        btn.addEventListener('touchcancel', () => { rcStop(); });
+    };
+
+    bindBtn('rcForward', 'forward');
+    bindBtn('rcBackward', 'backward');
+    bindBtn('rcLeft', 'left');
+    bindBtn('rcRight', 'right');
+
+    const stopBtn = document.getElementById('rcStop');
+    if (stopBtn) {
+        stopBtn.addEventListener('click', (e) => { e.preventDefault(); rcStop(); });
+    }
+
+    // Keyboard controls (WASD & Arrow Keys)
+    const keyMap = {
+        'KeyW': 'forward', 'ArrowUp': 'forward',
+        'KeyS': 'backward', 'ArrowDown': 'backward',
+        'KeyA': 'left', 'ArrowLeft': 'left',
+        'KeyD': 'right', 'ArrowRight': 'right'
+    };
+
+    window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+        if (e.code === 'Space') {
+            e.preventDefault();
+            rcStop();
+            return;
+        }
+        const dir = keyMap[e.code];
+        if (dir && !e.repeat) {
+            e.preventDefault();
+            rcDrive(dir);
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+        const dir = keyMap[e.code];
+        if (dir && activeDrive === dir) {
+            e.preventDefault();
+            rcStop();
+        }
+    });
+
+    // Auto-stop on window blur (e.g. alt-tab)
+    window.addEventListener('blur', () => { rcStop(); });
+}
+
+async function runPlantScan(btn) {
+    const el = document.getElementById("health");
+    const treatEl = document.getElementById("treatmentText");
+    if (btn) btn.disabled = true;
+    el.innerText = "Analyzing Leaf & Pathology...";
+    el.style.color = "#28a745";
+    if (treatEl) treatEl.innerText = "Extracting chlorophyll spectra and scanning for lesion patterns...";
+    try {
+        const res = await fetch("/scan?ajax=1&t=" + Date.now(), { method: "GET", cache: "no-store" });
+        const data = await res.json();
+        el.innerText = data.health || "Scan Complete";
+        if (treatEl && data.details && data.details.treatment) {
+            treatEl.innerText = data.details.treatment;
+        }
+        if (data.health && data.health.includes("❌")) {
+            el.style.color = "#dc3545";
+        } else if (data.health && data.health.includes("⚠️")) {
+            el.style.color = "#e0a800";
+        } else {
+            el.style.color = "#28a745";
+        }
+    } catch (e) {
+        el.innerText = "Scan Failed: Check Camera";
+        el.style.color = "#dc3545";
+        if (treatEl) treatEl.innerText = "Error communicating with rover vision service.";
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+window.runPlantScan = runPlantScan;
+
+// ============================================================
+// ANDROID PWA SERVICE WORKER & INSTALL PROMPT
+// ============================================================
+let deferredInstallPrompt = null;
+const pwaInstallBtn = document.getElementById('btnInstallPwa');
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then((reg) => {
+                console.log('AgriRover ServiceWorker registered with scope:', reg.scope);
+            })
+            .catch((err) => {
+                console.log('ServiceWorker registration error:', err);
+            });
+    });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (pwaInstallBtn) {
+        pwaInstallBtn.style.display = 'inline-flex';
+        pwaInstallBtn.onclick = async () => {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                const choice = await deferredInstallPrompt.userChoice;
+                if (choice.outcome === 'accepted') {
+                    pwaInstallBtn.style.display = 'none';
+                }
+                deferredInstallPrompt = null;
+            }
+        };
+    }
+});
+
+window.addEventListener('appinstalled', () => {
+    if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
+    console.log('AgriRover app was successfully installed!');
+});
+
+// ============================================================
+// ROBUST CAMERA STREAM WATCHDOG & MOBILE AUTO-FALLBACK
+// ============================================================
+const roverCamEl = document.querySelector('.camera');
+if (roverCamEl) {
+    let frameBusy = false;
+    let streamFailed = false;
+
+    function startFramePolling() {
+        if (!roverCamEl) return;
+        if (frameBusy) return;
+        frameBusy = true;
+        const nextImg = new Image();
+        nextImg.onload = () => {
+            roverCamEl.src = nextImg.src;
+            frameBusy = false;
+        };
+        nextImg.onerror = () => {
+            frameBusy = false;
+        };
+        nextImg.src = "/current_frame.jpg?t=" + Date.now();
+    }
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        // Android WebView performs significantly better with rapid JPEG double-buffering
+        setInterval(startFramePolling, 120);
+    } else {
+        roverCamEl.addEventListener('error', () => {
+            if (!streamFailed) {
+                streamFailed = true;
+                setInterval(startFramePolling, 120);
+            }
+        });
+        
+        setTimeout(() => {
+            if (roverCamEl.naturalWidth === 0) {
+                streamFailed = true;
+                setInterval(startFramePolling, 120);
+            }
+        }, 2000);
+    }
+}
+

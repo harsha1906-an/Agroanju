@@ -1,4 +1,7 @@
-from flask import Flask, render_template, Response, jsonify, request, redirect
+import os
+from dotenv import load_dotenv
+load_dotenv()
+from flask import Flask, render_template, Response, jsonify, request, redirect, send_from_directory
 from ultralytics import YOLO
 import cv2
 import urllib.request
@@ -22,8 +25,8 @@ app = Flask(__name__)
 # ============================================================
 # ESP32 CONFIG
 # ============================================================
-ESP32_CAM_IP = "10.155.192.238"
-ESP32_MAIN_IP = "10.155.192.209"
+ESP32_CAM_IP = os.getenv("ESP32_CAM_IP", "10.155.192.238")
+ESP32_MAIN_IP = os.getenv("ESP32_MAIN_IP", "10.155.192.209")
 ESP32_URL = f"http://{ESP32_CAM_IP}/capture"
 ESP32_DATA_URL = f"http://{ESP32_MAIN_IP}/data"
 ESP32_CONTROL_URL = f"http://{ESP32_MAIN_IP}"
@@ -59,11 +62,16 @@ last_detection = "None"
 OFFLINE_SENSOR = {
     "temperature": "--", "humidity": "--", "soil": "--",
     "distance": "--", "pump": "OFF", "mode": "--",
-    "lat": "--", "lon": "--", "pan": 90, "tilt": 90
+    "lat": "--", "lon": "--", "pan": 90, "tilt": 90, "probeAngle": 90
 }
 last_sensor_data = dict(OFFLINE_SENSOR)
 esp32_online = False
 health_status = "Waiting for Scan..."
+health_details = {
+    "disease_name": "Waiting for Scan...",
+    "treatment": "Hold a crop leaf in front of the camera and click Scan Plant.",
+    "severity": 0
+}
 
 weather_location = {
     "available": False, "latitude": None, "longitude": None,
@@ -479,10 +487,34 @@ def dashboard_data():
         "sensor": sensor,
         "weather": weather,
         "decision": decision,
-        "esp32_online": esp32_online
+        "esp32_online": esp32_online,
+        "detection": last_detection,
+        "health": health_status,
+        "health_details": health_details
     })
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
+
+
+@app.route("/manifest.json")
+def serve_manifest():
+    return send_from_directory("static", "manifest.json", mimetype="application/manifest+json")
+
+
+@app.route("/sw.js")
+def serve_service_worker():
+    response = send_from_directory("static", "sw.js", mimetype="application/javascript")
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+@app.route("/download/AgriRover.apk")
+def download_apk():
+    apk_dir = os.path.join(os.path.dirname(__file__), "android_build", "dist")
+    if os.path.exists(os.path.join(apk_dir, "AgriRover.apk")):
+        return send_from_directory(apk_dir, "AgriRover.apk", as_attachment=True)
+    return jsonify({"error": "APK not built yet"}), 404
 
 
 @app.route("/")
@@ -494,6 +526,7 @@ def home():
     return render_template(
         "index.html",
         health=health_status,
+        health_details=health_details,
         detection=last_detection,
         sensor=sensor,
         weather=weather,
@@ -516,17 +549,28 @@ def pump_off():
     return jsonify({"success": esp32_command("/pumpOff")})
 
 
+@app.route("/pump/invert")
+def pump_invert():
+    return jsonify({"success": esp32_command("/pumpInvert")})
+
+
 # ============================================================
 # PLANT HEALTH
 # ============================================================
 @app.route("/scan")
 def scan():
-    global health_status
+    global health_status, health_details
     try:
-        health_status = scan_plant()
+        telemetry = get_sensor_data()
+        diag = scan_plant(telemetry=telemetry)
+        health_status = diag.get("summary", "Scan Complete")
+        health_details = diag
     except Exception as e:
         print("Plant scan error:", e)
-        health_status = "Scan Failed"
+        health_status = f"Scan Failed: {type(e).__name__}"
+        health_details = {"treatment": "Check camera connection."}
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.args.get("ajax"):
+        return jsonify({"health": health_status, "details": health_details})
     return redirect("/")
 
 
@@ -548,25 +592,38 @@ def manual_mode():
 @app.route("/forward")
 def forward_cmd():
     esp32_command("/forward")
-    return redirect("/")
+    return jsonify({"success": True, "command": "forward"})
+
+
+@app.route("/backward")
+def backward_cmd():
+    esp32_command("/backward")
+    return jsonify({"success": True, "command": "backward"})
 
 
 @app.route("/left")
 def left_cmd():
     esp32_command("/left")
-    return redirect("/")
+    return jsonify({"success": True, "command": "left"})
 
 
 @app.route("/right")
 def right_cmd():
     esp32_command("/right")
-    return redirect("/")
+    return jsonify({"success": True, "command": "right"})
 
 
 @app.route("/stop")
 def stop_cmd():
     esp32_command("/stop")
-    return redirect("/")
+    return jsonify({"success": True, "command": "stop"})
+
+
+@app.route("/speed/<int:val>")
+def speed_cmd(val):
+    val = max(50, min(255, val))
+    esp32_command(f"/speed?val={val}")
+    return jsonify({"success": True, "speed": val})
 
 
 # ============================================================
@@ -609,11 +666,71 @@ def cam_scan():
 
 
 # ============================================================
+# SOIL PROBE SERVO CONTROLS (GPIO 25)
+# ============================================================
+def _send_serial_probe(cmd_str):
+    try:
+        import serial
+        s = serial.Serial()
+        s.port = 'COM8'
+        s.baudrate = 115200
+        s.dtr = False
+        s.rts = False
+        s.timeout = 0.2
+        s.open()
+        s.write(cmd_str.encode('utf-8'))
+        s.close()
+    except Exception:
+        pass
+
+
+@app.route("/probe/retract")
+def probe_retract():
+    _send_serial_probe("RETRACT\n")
+    esp32_command("/probe/retract")
+    return jsonify({"success": True, "action": "retract", "angle": 55})
+
+
+@app.route("/probe/deploy")
+def probe_deploy():
+    _send_serial_probe("DEPLOY\n")
+    esp32_command("/probe/deploy")
+    return jsonify({"success": True, "action": "deploy", "angle": 135})
+
+
+@app.route("/probe/up")
+def probe_up():
+    esp32_command("/probe/up")
+    return jsonify({"success": True, "action": "up"})
+
+
+@app.route("/probe/down")
+def probe_down():
+    esp32_command("/probe/down")
+    return jsonify({"success": True, "action": "down"})
+
+
+@app.route("/probe/angle")
+def probe_angle():
+    val = request.args.get("val", type=int)
+    if val is not None:
+        val = max(20, min(160, val))
+        _send_serial_probe(f"SERVO25:{val}\n")
+        esp32_command(f"/probe/angle?val={val}")
+        return jsonify({"success": True, "angle": val})
+    return jsonify({"success": False, "error": "Missing val parameter"}), 400
+
+
+
+# ============================================================
 # SENSOR / WEATHER / STATUS ENDPOINTS
 # ============================================================
 @app.route("/sensor_data")
 def sensor_data():
-    response = jsonify(get_sensor_data())
+    data = get_sensor_data()
+    data["detection"] = last_detection
+    data["health"] = health_status
+    response = jsonify(data)
     response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -736,15 +853,49 @@ def intercrop_recommendation():
 # ============================================================
 # CAMERA STREAM
 # ============================================================
-def generate_frames():
-    global last_detection
+def make_offline_frame():
+    img = np.zeros((480, 640, 3), dtype=np.uint8)
+    img[:] = (30, 30, 35)
+    cv2.putText(img, "AGRO-VATORS CAMERA", (150, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 220, 120), 2)
+    cv2.putText(img, f"ESP32-CAM Offline ({ESP32_CAM_IP})", (110, 230), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    cv2.putText(img, "Turn on hotspot 'phone1' (pass: 12345678)", (90, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+    cv2.putText(img, "Or update ESP32_CAM_IP in .env", (150, 320), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (150, 150, 150), 1)
+    ret, buf = cv2.imencode(".jpg", img)
+    return buf.tobytes() if ret else b""
+
+
+# ============================================================
+# CENTRAL CAMERA CAPTURE & AUTO-EXPOSURE WORKER THREAD
+# ============================================================
+latest_annotated_jpeg = None
+camera_lock = threading.Lock()
+clahe_filter = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
+
+
+def camera_worker():
+    global latest_annotated_jpeg, last_detection
+    print("Central Camera Worker Thread Started.")
     while True:
         try:
-            img_resp = urllib.request.urlopen(ESP32_URL, timeout=CAMERA_TIMEOUT)
-            img_np = np.array(bytearray(img_resp.read()), dtype=np.uint8)
+            req = urllib.request.Request(ESP32_URL, headers={"User-Agent": "AgriRover/1.0"})
+            with urllib.request.urlopen(req, timeout=2.5) as resp:
+                raw_bytes = resp.read()
+
+            if not raw_bytes or len(raw_bytes) < 500:
+                time.sleep(0.1)
+                continue
+
+            img_np = np.frombuffer(raw_bytes, dtype=np.uint8)
             frame = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
             if frame is None:
+                time.sleep(0.1)
                 continue
+
+            # Auto-exposure compensation on luminance channel
+            lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            cl = clahe_filter.apply(l)
+            frame = cv2.cvtColor(cv2.merge((cl, a, b)), cv2.COLOR_LAB2BGR)
 
             frame = cv2.resize(frame, (640, 480))
             results = model(frame, imgsz=320, verbose=False)
@@ -757,18 +908,98 @@ def generate_frames():
                 if conf > best_conf and conf > 0.40:
                     best_conf = conf
                     best_name = model.names[cls]
+
+            # --------------------------------------------------------
+            # REAL-TIME COMPUTER VISION LEAF & PLANT PATHOLOGY DETECTOR
+            # --------------------------------------------------------
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            mask_green = cv2.inRange(hsv, np.array([25, 35, 35]), np.array([88, 255, 255]))
+            mask_yellow = cv2.inRange(hsv, np.array([18, 40, 50]), np.array([28, 255, 255]))
+            mask_brown = cv2.inRange(hsv, np.array([8, 45, 25]), np.array([18, 255, 180]))
+
+            plant_mask = cv2.bitwise_or(mask_green, cv2.bitwise_or(mask_yellow, mask_brown))
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            plant_mask = cv2.morphologyEx(plant_mask, cv2.MORPH_OPEN, kernel)
+            plant_mask = cv2.morphologyEx(plant_mask, cv2.MORPH_CLOSE, kernel)
+
+            contours, _ = cv2.findContours(plant_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            leaf_found = False
+
+            for cnt in contours:
+                area = cv2.contourArea(cnt)
+                if area > 1200:
+                    x, y, w, h = cv2.boundingRect(cnt)
+
+                    roi_g = cv2.countNonZero(mask_green[y:y+h, x:x+w])
+                    roi_y = cv2.countNonZero(mask_yellow[y:y+h, x:x+w])
+                    roi_b = cv2.countNonZero(mask_brown[y:y+h, x:x+w])
+                    total_roi = max(1, roi_g + roi_y + roi_b)
+
+                    lesion_pct = (roi_b / total_roi) * 100
+                    yellow_pct = (roi_y / total_roi) * 100
+                    green_pct = (roi_g / total_roi) * 100
+
+                    if lesion_pct > 14:
+                        label = f"Leaf Blight/Spot ({lesion_pct:.0f}%)"
+                        color = (30, 30, 220) # Red
+                    elif yellow_pct > 22:
+                        label = f"Leaf Chlorosis ({yellow_pct:.0f}%)"
+                        color = (0, 215, 255) # Yellow/Gold
+                    else:
+                        label = f"Healthy Leaf ({green_pct:.0f}%)"
+                        color = (40, 220, 80) # Vibrant Green
+
+                    cv2.rectangle(annotated, (x, y), (x + w, y + h), color, 2)
+                    (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
+                    banner_top = max(0, y - 22)
+                    cv2.rectangle(annotated, (x, banner_top), (x + text_w + 10, banner_top + 22), color, -1)
+                    cv2.putText(annotated, label, (x + 5, banner_top + 16), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+
+                    if not leaf_found or area > 3000:
+                        best_name = label
+                        leaf_found = True
+
             last_detection = best_name
+            ret, buffer = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            if ret:
+                with camera_lock:
+                    latest_annotated_jpeg = buffer.tobytes()
 
-            ret, buffer = cv2.imencode(".jpg", annotated)
-            if not ret:
-                continue
-
-            yield (b"--frame\r\n"
-                   b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
+            time.sleep(0.06)
 
         except Exception as e:
-            print("Camera Error:", e)
-            time.sleep(0.2)
+            with camera_lock:
+                latest_annotated_jpeg = make_offline_frame()
+            time.sleep(0.5)
+
+
+# Start persistent single-instance camera thread
+cam_worker_thread = threading.Thread(target=camera_worker, daemon=True)
+cam_worker_thread.start()
+
+
+def generate_frames():
+    while True:
+        with camera_lock:
+            jpeg = latest_annotated_jpeg
+        if jpeg:
+            length = len(jpeg)
+            yield (b"--frame\r\n"
+                   b"Content-Type: image/jpeg\r\n"
+                   b"Content-Length: " + str(length).encode() + b"\r\n\r\n" +
+                   jpeg + b"\r\n")
+        time.sleep(0.08)
+
+
+@app.route("/current_frame.jpg")
+def current_frame():
+    with camera_lock:
+        jpeg = latest_annotated_jpeg
+    if not jpeg:
+        jpeg = make_offline_frame()
+    response = Response(jpeg, mimetype="image/jpeg")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
 
 
 @app.route("/video_feed")
@@ -780,4 +1011,6 @@ def video_feed():
 # START
 # ============================================================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    port = int(os.getenv("PORT", 5001))
+    print(f"Starting AGRO-VATORS Dashboard on http://localhost:{port}")
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)

@@ -1,0 +1,25 @@
+{
+  "name": "AGRI-VISE Rover Remote",
+  "short_name": "AgriRover",
+  "description": "Smart Agricultural Rover Remote Controller & Plant Pathology Console",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121b14",
+  "theme_color": "#28a745",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
