@@ -61,7 +61,7 @@ last_detection = "None"
 # ============================================================
 OFFLINE_SENSOR = {
     "temperature": "--", "humidity": "--", "soil": "--",
-    "distance": "--", "pump": "OFF", "mode": "--",
+    "distance": "--", "pump": "OFF", "relayMode": "ACTIVE_LOW", "mode": "--",
     "lat": "--", "lon": "--", "pan": 90, "tilt": 90, "probeAngle": 90
 }
 last_sensor_data = dict(OFFLINE_SENSOR)
@@ -552,6 +552,11 @@ def pump_off():
 @app.route("/pump/invert")
 def pump_invert():
     return jsonify({"success": esp32_command("/pumpInvert")})
+
+
+@app.route("/pump/test")
+def pump_test():
+    return jsonify({"success": esp32_command("/pumpTest")})
 
 
 # ============================================================

@@ -281,26 +281,26 @@ void backward() {
 // ============================================================
 
 void pumpON() {
-
+  int level = relayActiveLow ? LOW : HIGH;
   digitalWrite(
     RELAY_PIN,
-    relayActiveLow ? LOW : HIGH
+    level
   );
-
   pumpOn = true;
-
+  Serial.printf("[PUMP] ON -> GPIO %d set to %s (Relay Mode: Active %s)\n",
+                RELAY_PIN, level == HIGH ? "HIGH" : "LOW", relayActiveLow ? "LOW" : "HIGH");
 }
 
 
 void pumpOFF() {
-
+  int level = relayActiveLow ? HIGH : LOW;
   digitalWrite(
     RELAY_PIN,
-    relayActiveLow ? HIGH : LOW
+    level
   );
-
   pumpOn = false;
-
+  Serial.printf("[PUMP] OFF -> GPIO %d set to %s (Relay Mode: Active %s)\n",
+                RELAY_PIN, level == HIGH ? "HIGH" : "LOW", relayActiveLow ? "LOW" : "HIGH");
 }
 // ============================================================
 // PUMP WEB CONTROL
@@ -338,6 +338,19 @@ void handlePumpInvert() {
     200,
     "text/plain",
     relayActiveLow ? "RELAY: ACTIVE LOW" : "RELAY: ACTIVE HIGH"
+  );
+}
+
+void handlePumpTest() {
+  Serial.println("[PUMP] Running 1.2s Test Cycle...");
+  pumpON();
+  delay(1200);
+  pumpOFF();
+  Serial.println("[PUMP] Test Cycle Complete.");
+  server.send(
+    200,
+    "text/plain",
+    "PUMP TEST COMPLETE"
   );
 }
 
@@ -1030,6 +1043,14 @@ void handleData() {
 
   json +=
     pumpState;
+
+  json += "\",";
+
+  json +=
+    "\"relayMode\":\"";
+
+  json +=
+    (relayActiveLow ? "ACTIVE_LOW" : "ACTIVE_HIGH");
 
   json += "\",";
 
@@ -2012,6 +2033,21 @@ void setup() {
     handlePumpInvert
   );
 
+  server.on(
+    "/pump/invert",
+    handlePumpInvert
+  );
+
+  server.on(
+    "/pumpTest",
+    handlePumpTest
+  );
+
+  server.on(
+    "/pump/test",
+    handlePumpTest
+  );
+
   // ----------------------------------------------------------
   // START SERVER
   // ----------------------------------------------------------
@@ -2226,6 +2262,8 @@ void handleSerialCommands() {
       pumpON(); Serial.println("OK: PUMP_ON");
     } else if (cmd == "PUMP_OFF") {
       pumpOFF(); Serial.println("OK: PUMP_OFF");
+    } else if (cmd == "PUMP_TEST") {
+      handlePumpTest();
     } else if (cmd == "PUMP_INVERT") {
       relayActiveLow = !relayActiveLow;
       pumpOFF();

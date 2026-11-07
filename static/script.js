@@ -458,6 +458,22 @@ async function sendCommand(path, button) {
 }
 window.sendCommand = sendCommand;
 
+async function invertRelay(button) {
+    if (button) button.disabled = true;
+    try {
+        const resp = await fetch('/pump/invert?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
+        const res = await resp.json();
+        if (res.success) {
+            updateSensors();
+        }
+    } catch (e) {
+        console.error("Failed to toggle relay polarity", e);
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+window.invertRelay = invertRelay;
+
 let isUserDraggingProbeSlider = false;
 
 function onProbeSliderInput(val) {
@@ -562,6 +578,11 @@ async function updateSensors() {
         const pump = document.getElementById("pump");
         pump.innerText = data.pump;
         pump.className = (data.pump && data.pump.toString().toUpperCase() === "ON") ? "badge badge-on" : "badge badge-off";
+
+        const relayBadge = document.getElementById("relayModeBadge");
+        if (relayBadge && data.relayMode) {
+            relayBadge.innerText = (data.relayMode === "ACTIVE_HIGH") ? "Active-HIGH" : "Active-LOW";
+        }
 
         const probeAng = data.probeAngle !== undefined ? data.probeAngle : data.tilt;
         if (probeAng !== undefined) {
