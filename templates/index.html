@@ -124,12 +124,9 @@
 <div><i class="fa-solid fa-faucet"></i> <span data-i18n="pump">Pump</span></div>
 <div>
 <span id="pump" class="badge badge-off">{{ sensor.pump }}</span>
-<span id="relayModeBadge" class="badge" style="background:#374151; color:#93c5fd; margin-left:6px; font-size:11px;">Active-LOW</span>
-<div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-  <button onclick="sendCommand('/pump/on', this)" data-i18n="pumpOn">Pump ON</button>
-  <button onclick="sendCommand('/pump/off', this)" data-i18n="pumpOff">Pump OFF</button>
-  <button onclick="sendCommand('/pump/test', this)" style="background:#0284c7;" title="Click test cycle (1.2 seconds)">⚡ Test 1s</button>
-  <button onclick="invertRelay(this)" style="background:#4b5563;" title="Switch relay between Active HIGH and Active LOW">🔄 Flip Polarity</button>
+<div style="margin-top: 10px; display: flex; gap: 8px;">
+  <button onclick="sendCommand('/pump/on', this)" style="background:#15803d; color:#fff;" data-i18n="pumpOn"><i class="fa-solid fa-play"></i> Pump ON</button>
+  <button onclick="sendCommand('/pump/off', this)" style="background:#b91c1c; color:#fff;" data-i18n="pumpOff"><i class="fa-solid fa-stop"></i> Pump OFF</button>
 </div>
 </div>
 </div>

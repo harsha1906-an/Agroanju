@@ -113,7 +113,11 @@ def get_sensor_data():
 
         for key in OFFLINE_SENSOR:
             if key in data and data[key] is not None:
-                last_sensor_data[key] = data[key]
+                val = data[key]
+                if key == "pump":
+                    # Invert reported state so badge accurately displays physical relay/pump state
+                    val = "ON" if str(val).upper() == "OFF" else "OFF"
+                last_sensor_data[key] = val
         esp32_online = True
 
         now = time.time()
@@ -537,16 +541,18 @@ def home():
 
 
 # ============================================================
-# PUMP CONTROLS
+# PUMP CONTROLS (Mapped to physical relay action)
 # ============================================================
 @app.route("/pump/on")
 def pump_on():
-    return jsonify({"success": esp32_command("/pumpOn")})
+    # User requested PUMP ON -> send signal that activates the relay
+    return jsonify({"success": esp32_command("/pumpOff")})
 
 
 @app.route("/pump/off")
 def pump_off():
-    return jsonify({"success": esp32_command("/pumpOff")})
+    # User requested PUMP OFF -> send signal that deactivates the relay
+    return jsonify({"success": esp32_command("/pumpOn")})
 
 
 @app.route("/pump/invert")
