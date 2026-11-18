@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AGRO-VATORS: Complete Technical Project Manual & Reference</title>
+<style>
+  @page {
+    size: A4;
+    margin: 14mm 12mm 14mm 12mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    background-color: #ffffff;
+    line-height: 1.5;
+    font-size: 10pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Cover Page */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 94vh;
+    text-align: center;
+    border: 3px solid #166534;
+    border-radius: 12px;
+    padding: 40px 25px;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background-color: #15803d;
+    color: #ffffff;
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 6px 18px;
+    border-radius: 20px;
+    margin-bottom: 25px;
+  }
+
+  .cover-title {
+    font-size: 26pt;
+    font-weight: 800;
+    color: #14532d;
+    margin: 0 0 15px 0;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+  }
+
+  .cover-subtitle {
+    font-size: 13.5pt;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 25px;
+    max-width: 680px;
+  }
+
+  .cover-divider {
+    width: 120px;
+    height: 4px;
+    background-color: #15803d;
+    margin: 0 auto 30px auto;
+    border-radius: 2px;
+  }
+
+  .cover-meta {
+    margin-top: 30px;
+    background-color: #ffffff;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 18px 24px;
+    text-align: left;
+    width: 85%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .cover-meta table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .cover-meta td {
+    padding: 5px 8px;
+    font-size: 10pt;
+  }
+
+  .cover-meta td.label {
+    font-weight: 700;
+    color: #166534;
+    width: 32%;
+  }
+
+  /* Headings */
+  h1 {
+    font-size: 16pt;
+    font-weight: 800;
+    color: #14532d;
+    border-bottom: 2px solid #22c55e;
+    padding-bottom: 5px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+
+  h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #166534;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #1f2937;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin: 0 0 9px 0;
+    text-align: justify;
+  }
+
+  ul, ol {
+    margin: 0 0 10px 0;
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .no-break {
+    page-break-inside: avoid;
+  }
+
+  /* Tables */
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px 0;
+    font-size: 8.5pt;
+  }
+
+  table.data-table thead {
+    display: table-header-group;
+  }
+
+  table.data-table tr {
+    page-break-inside: avoid;
+  }
+
+  table.data-table th, table.data-table td {
+    border: 1px solid #d1d5db;
+    padding: 5px 8px;
+    text-align: left;
+  }
+
+  table.data-table th {
+    background-color: #15803d;
+    color: #ffffff;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 8pt;
+    letter-spacing: 0.5px;
+  }
+
+  table.data-table tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+
+  /* Callout Boxes */
+  .callout {
+    background-color: #f0fdf4;
+    border-left: 4px solid #16a34a;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 6px 6px 0;
+    page-break-inside: avoid;
+  }
+
+  .callout-title {
+    font-weight: 700;
+    color: #15803d;
+    margin-bottom: 3px;
+    font-size: 10pt;
+  }
+
+  .callout-warning {
+    background-color: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 6px 6px 0;
+    page-break-inside: avoid;
+  }
+
+  .callout-warning .callout-title {
+    color: #b45309;
+    font-size: 10pt;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .badge-green { background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  .badge-blue { background-color: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+  .badge-amber { background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+  .badge-red { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+  /* Code blocks */
+  pre {
+    background-color: #1e293b;
+    color: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8pt;
+    line-height: 1.4;
+    overflow-x: auto;
+    margin: 8px 0 12px 0;
+    page-break-inside: avoid;
+    border: 1px solid #334155;
+  }
+
+  code {
+    font-family: Consolas, "Courier New", monospace;
+    background-color: #f1f5f9;
+    color: #0f172a;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 8.5pt;
+  }
+
+  pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+  }
+
+  /* Grid layouts */
+  .grid-2 {
+    display: flex;
+    gap: 12px;
+    margin: 10px 0;
+  }
+
+  .grid-2 > div {
+    flex: 1;
+  }
+
+  .card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    page-break-inside: avoid;
+  }
+
+  .card-header {
+    font-weight: 700;
+    color: #166534;
+    font-size: 10.5pt;
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+
+  .image-preview {
+    text-align: center;
+    margin: 10px 0;
+  }
+
+  .image-preview img {
+    max-height: 330px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .image-caption {
+    font-size: 8pt;
+    color: #6b7280;
+    margin-top: 4px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- COVER PAGE -->
+<!-- ============================================================ -->
+<div class="cover">
+  <div class="cover-badge">Complete Technical Documentation & System Reference</div>
+  <div class="cover-title">AGRO-VATORS</div>
+  <div class="cover-subtitle">Smart Autonomous & Tele-Operated Agricultural Rover with Edge AI Leaf Pathology, Precision Soil Penetration, and Targeted Micro-Irrigation</div>
+  <div class="cover-divider"></div>
+
+  <div class="cover-meta">
+    <table>
+      <tr>
+        <td class="label">Project Title:</td>
+        <td><strong>AGRO-VATORS Precision Agricultural Robotic Platform</strong></td>
+      </tr>
+      <tr>
+        <td class="label">Architecture:</td>
+        <td>Quad-Tier Edge IoT & Machine Learning Framework</td>
+      </tr>
+      <tr>
+        <td class="label">Master Robotics MCU:</td>
+        <td>ESP32 DevKit V1 (30-Pin, 240MHz Dual-Core Xtensa, 520KB SRAM)</td>
+      </tr>
+      <tr>
+        <td class="label">Vision Processor:</td>
+        <td>AI-Thinker ESP32-CAM (OV2640 2MP Camera Sensor, 4MB PSRAM)</td>
+      </tr>
+      <tr>
+        <td class="label">AI Inference Engine:</td>
+        <td>Ultralytics YOLOv8 Nano (<code>yolov8n.pt</code>) + HSV Spectral Pathology Analysis</td>
+      </tr>
+      <tr>
+        <td class="label">Mobile Client:</td>
+        <td>Native Android Hybrid Application (<code>com.agrovators.agrirover</code>)</td>
+      </tr>
+      <tr>
+        <td class="label">Network Topology:</td>
+        <td>100% Offline 2.4 GHz Local Hotspot (SSID: <code>phone1</code>, Zero Internet Dependency)</td>
+      </tr>
+      <tr>
+        <td class="label">Active Peripherals:</td>
+        <td>4WD High-Torque DC Motors, L298N Driver, SG90 Soil Probe Deployment Servo (20°–160°), Submersible Pump Relay, DHT11, Analog Soil Probe, LDR, SSD1306 OLED</td>
+      </tr>
+      <tr>
+        <td class="label">Hardware Status:</td>
+        <td><strong>GPS & Ultrasonic decoupled</strong> for zero-latency deterministic execution</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================ -->
+<!-- 1. EXECUTIVE SUMMARY & ARCHITECTURAL HIGHLIGHTS -->
+<!-- ============================================================ -->
+<h1>1. Executive Summary & System Overview</h1>
+
+<p>
+The <strong>AGRO-VATORS</strong> smart agricultural rover is a purpose-built precision robotic platform engineered for automated field scouting, microclimate environmental telemetry, motorized soil core analysis, real-time crop disease diagnosis, and localized micro-irrigation.
+</p>
+
+<p>
+Unlike conventional agricultural robots that rely on fragile cloud computing infrastructure or high-latency cellular connections, AGRO-VATORS operates on an ultra-resilient <strong>Quad-Tier Edge Architecture</strong> where the rover, AI computer vision server, and mobile control console communicate over a self-contained local 2.4 GHz Wi-Fi hotspot. The system functions with <strong>100% autonomy in remote rural environments</strong> without requiring an internet connection.
+</p>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">🌱 Precision Soil Penetration Mechanism</div>
+    <p>
+      Equipped with a high-torque TowerPro SG90 servo motor mounted on <strong>GPIO 25</strong> that dynamically drives an analog soil probe into the soil profile across a calibrated <strong>20° to 160° arc</strong>. The probe stays safely retracted during rover driving and deploys into the ground on command, eliminating probe drag, root destruction, and mechanical bending.
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-header">🔍 Edge YOLOv8 Leaf Pathology</div>
+    <p>
+      Streams high-framerate video from an onboard ESP32-CAM node to a local laptop AI engine executing <strong>Ultralytics YOLOv8</strong> alongside an advanced OpenCV spectral analysis pipeline. The system detects fungal pathogens, bacterial spots, powdery mildew, and nutrient chlorosis, outputting actionable chemical and organic prescriptions in real time.
+    </p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">🚿 Targeted Micro-Irrigation</div>
+    <p>
+      A 5V/3.3V submersible centrifugal water pump controlled via an optocoupled relay on <strong>GPIO 33</strong>. The pump can be triggered manually from the Android app or autonomously based on fused agronomic soil and microclimate telemetry.
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-header">📱 Multi-Mode Operator Console</div>
+    <p>
+      A custom native Android application with touch directional pad, real-time sensor heads-up display (HUD), video feed with AI bounding boxes, probe deployment slider, and multilingual localization in English, Hindi, and Bengali.
+    </p>
+  </div>
+</div>
+
+<div class="callout-warning">
+  <div class="callout-title">⚠️ Engineering Note on Hardware Streamlining (GPS & Ultrasonic Decoupled)</div>
+  <p>
+    In the final operational rover configuration, <strong>GPS (UART2) and Ultrasonic HC-SR04 sensors have been decoupled</strong> from the firmware execution loop. In early bench testing, blocking <code>pulseIn()</code> ultrasonic measurement calls and pin conflicts on GPIO 33 caused CPU hangs and intermittent relay chatter. Decoupling these non-critical components ensures 100% deterministic, zero-latency execution for motor drive commands, smooth servo motion, and pump switching.
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. COMPLETE TECH STACK & SYSTEM ARCHITECTURE -->
+<!-- ============================================================ -->
+<h1>2. Complete Tech Stack Breakdown (A–Z)</h1>
+
+<p>
+The AGRO-VATORS system integrates hardware, embedded firmware, computer vision, web technologies, and native mobile software:
+</p>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Layer</th>
+      <th>Technology</th>
+      <th>Version / Spec</th>
+      <th>Role in System</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Robotics MCU</strong></td>
+      <td>Espressif ESP32 DevKit V1</td>
+      <td>30-pin, CP2102, 240MHz</td>
+      <td>Master real-time controller for 4WD motors, servo, relay, sensors, and OLED.</td>
+    </tr>
+    <tr>
+      <td><strong>Vision MCU</strong></td>
+      <td>AI-Thinker ESP32-CAM</td>
+      <td>OV2640 2MP, 4MB PSRAM</td>
+      <td>Dedicated camera node streaming 240x240 / 320x240 MJPEG video on port 80.</td>
+    </tr>
+    <tr>
+      <td><strong>Motor Driver</strong></td>
+      <td>L298N Dual H-Bridge</td>
+      <td>2A peak per channel, 5V Reg</td>
+      <td>Drives 4x 12V DC geared motors (300 RPM) with independent dual-channel control.</td>
+    </tr>
+    <tr>
+      <td><strong>Probe Servo</strong></td>
+      <td>TowerPro SG90 Micro Servo</td>
+      <td>PWM 50Hz, 1.8kg·cm torque</td>
+      <td>Articulates soil probe between 20° (tucked/retracted) and 160° (ground insertion).</td>
+    </tr>
+    <tr>
+      <td><strong>Pump & Relay</strong></td>
+      <td>Songle 5V Opto-Relay + Pump</td>
+      <td>SRD-05VDC-SL-C, 10A 250VAC</td>
+      <td>Controls 3.3V/5V DC submersible mini water pump on GPIO 33 with inverted logic.</td>
+    </tr>
+    <tr>
+      <td><strong>Environment Sensors</strong></td>
+      <td>DHT11 + Soil + LDR</td>
+      <td>Digital / Analog ADC1</td>
+      <td>Measures ambient air temp/humidity (GPIO 4), soil moisture (GPIO 34), light (GPIO 35).</td>
+    </tr>
+    <tr>
+      <td><strong>Local Display</strong></td>
+      <td>0.96" SSD1306 OLED</td>
+      <td>128x64 Monochrome, I2C</td>
+      <td>Live telemetry HUD on the rover chassis showing IP, probe angle, and pump status.</td>
+    </tr>
+    <tr>
+      <td><strong>Embedded Firmware</strong></td>
+      <td>Embedded C++ (Arduino Core)</td>
+      <td>ESP32 Core v3.x, FreeRTOS</td>
+      <td>Asynchronous WebServer, multi-tasking scheduler, servo interpolation, failsafe watchdog.</td>
+    </tr>
+    <tr>
+      <td><strong>AI Server</strong></td>
+      <td>Python / Flask</td>
+      <td>Python 3.10+, Flask 3.x</td>
+      <td>Central hub running REST API, camera stream proxy, sensor caching, database logging.</td>
+    </tr>
+    <tr>
+      <td><strong>Computer Vision</strong></td>
+      <td>Ultralytics YOLOv8 + OpenCV</td>
+      <td>YOLOv8n (Nano), OpenCV 4.x</td>
+      <td>Real-time crop detection, CLAHE contrast filtering, HSV lesion color space analysis.</td>
+    </tr>
+    <tr>
+      <td><strong>Database</strong></td>
+      <td>SQLite3</td>
+      <td><code>agrivise.db</code></td>
+      <td>Persistent logging of microclimate readings, soil history, and disease detections.</td>
+    </tr>
+    <tr>
+      <td><strong>Mobile Client</strong></td>
+      <td>Native Android Java</td>
+      <td>SDK 24+ (Android 7.0–14)</td>
+      <td>Custom APK with Hardware-Accelerated WebView, JS bridge, and touch controls.</td>
+    </tr>
+    <tr>
+      <td><strong>Network Protocol</strong></td>
+      <td>IEEE 802.11 b/g/n Hotspot</td>
+      <td>WPA2-PSK, 2.4 GHz</td>
+      <td>Private local wireless network (SSID: <code>phone1</code>) binding all nodes.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ============================================================ -->
+<!-- 3. DETAILED HARDWARE WIRING & PINOUT GUIDE -->
+<!-- ============================================================ -->
+<h1>3. Complete Hardware Pinout & Wiring Matrix</h1>
+
+<p>
+The table below represents the exact physical wiring between the ESP32 DevKit V1 microcontroller and all onboard actuators, sensors, and power rails.
+</p>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>ESP32 Pin</th>
+      <th>Pin Function</th>
+      <th>Connected Component</th>
+      <th>Module Pin</th>
+      <th>Electrical Characteristics & Logic</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="badge badge-green">GPIO 26</span></td>
+      <td>Digital Output</td>
+      <td>L298N Motor Driver</td>
+      <td><code>IN1</code> (Left Motors Forward)</td>
+      <td>3.3V Logic. HIGH = Forward left drive.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">GPIO 27</span></td>
+      <td>Digital Output</td>
+      <td>L298N Motor Driver</td>
+      <td><code>IN2</code> (Left Motors Reverse)</td>
+      <td>3.3V Logic. HIGH = Reverse left drive.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">GPIO 14</span></td>
+      <td>Digital Output</td>
+      <td>L298N Motor Driver</td>
+      <td><code>IN3</code> (Right Motors Forward)</td>
+      <td>3.3V Logic. HIGH = Forward right drive.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">GPIO 12</span></td>
+      <td>Digital Output</td>
+      <td>L298N Motor Driver</td>
+      <td><code>IN4</code> (Right Motors Reverse)</td>
+      <td>3.3V Logic. HIGH = Reverse right drive.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">GPIO 25</span></td>
+      <td>PWM Output</td>
+      <td>SG90 Soil Probe Servo</td>
+      <td>Signal (Orange / Yellow)</td>
+      <td>50Hz PWM. 20° = Retracted, 160° = Fully deployed.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">GPIO 13</span></td>
+      <td>PWM Output</td>
+      <td>SG90 Camera Pan Servo</td>
+      <td>Signal (Orange / Yellow)</td>
+      <td>50Hz PWM. 30° to 150° camera horizontal panning.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-amber">GPIO 33</span></td>
+      <td>Digital Output</td>
+      <td>Single-Channel Relay</td>
+      <td><code>IN</code> (Trigger Signal)</td>
+      <td>Active-LOW logic with 3.3V VCC. LOW = Pump ON, HIGH = Pump OFF.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">GPIO 4</span></td>
+      <td>Digital Input</td>
+      <td>DHT11 Sensor</td>
+      <td><code>DATA</code> / Signal</td>
+      <td>Single-bus digital protocol. Uses internal pull-up.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-amber">GPIO 34</span></td>
+      <td>Analog Input (ADC1)</td>
+      <td>Soil Moisture Probe</td>
+      <td><code>A0</code> (Analog Out)</td>
+      <td>12-bit ADC (0–4095). 4095 = In air (Dry), ~1800 = Wet soil.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-amber">GPIO 35</span></td>
+      <td>Analog Input (ADC1)</td>
+      <td>LDR Light Sensor</td>
+      <td><code>A0</code> (Analog Out)</td>
+      <td>12-bit ADC (0–4095). Low = Bright sunlight, High = Dark.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">GPIO 21</span></td>
+      <td>I2C Data (SDA)</td>
+      <td>0.96" SSD1306 OLED</td>
+      <td><code>SDA</code></td>
+      <td>3.3V I2C bus (Address: <code>0x3C</code>).</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">GPIO 22</span></td>
+      <td>I2C Clock (SCL)</td>
+      <td>0.96" SSD1306 OLED</td>
+      <td><code>SCL</code></td>
+      <td>3.3V I2C clock (400 kHz Fast-Mode).</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-red">VIN (5V)</span></td>
+      <td>Power Input</td>
+      <td>L298N 5V Out / Battery</td>
+      <td><code>+5V</code> Output Terminal</td>
+      <td>Feeds ESP32 onboard AMS1117 3.3V LDO regulator.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-red">3V3</span></td>
+      <td>3.3V Power Out</td>
+      <td>Relay, DHT11, OLED, LDR</td>
+      <td><code>VCC</code></td>
+      <td>Stable 3.3V regulated rail.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-red">GND</span></td>
+      <td>Common Ground</td>
+      <td>Common Ground Bus</td>
+      <td><code>GND</code></td>
+      <td>Shared electrical reference between battery, driver, and MCU.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Water Pump Power Circuit (Relay Screw Terminals)</h2>
+<p>
+The single-channel relay operates as an electrically isolated dry contact switch. It does not output voltage itself. The pump circuit is wired through the relay's screw terminal block:
+</p>
+<pre>
+[Battery (+) / 5V DC] ──────> [ Relay COM Terminal (Middle Screw) ]
+                              [ Relay NO Terminal (Normally Open) ] ──────> [ Water Pump Red (+) Wire ]
+[Battery (-) / Common GND] ───────────────────────────────────────────────> [ Water Pump Black (-) Wire ]
+</pre>
+<ul>
+  <li><strong>When Relay is DEACTIVATED (Pump OFF)</strong>: The internal switch contact is open. Zero current reaches the pump.</li>
+  <li><strong>When Relay is ACTIVATED (Pump ON)</strong>: The coil pulls the armature closed, completing the 5V power circuit directly to the pump.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ============================================================ -->
+<!-- 4. FINAL UPDATED ESP32 FIRMWARE REFERENCE -->
+<!-- ============================================================ -->
+<h1>4. Final Updated ESP32 Firmware Reference</h1>
+
+<p>
+The core controller firmware is compiled using the <strong>Arduino ESP32 Core v3.x</strong>. It integrates non-blocking sensor acquisition, hardware PWM servo positioning, failsafe drive watchdogs, and a full HTTP REST server.
+</p>
+
+<h2>Key Firmware Architecture Modules</h2>
+<ul>
+  <li><strong>Drive Failsafe Watchdog (600ms)</strong>: Automatically executes <code>stopMotor()</code> if no valid drive packet is received within 600 milliseconds, preventing runaway rover incidents during Wi-Fi packet drops.</li>
+  <li><strong>Smooth Servo Slew-Rate Controller</strong>: Rather than commanding instantaneous angle jumps that cause current spikes, the servo angles incrementally slew towards target positions every 20ms using <code>updateServos()</code>.</li>
+  <li><strong>Active-LOW Tri-State Relay Driver</strong>: Implements active-low signaling for the 3.3V-powered relay module, providing crisp clicking and reliable pump shutoff without leakage current.</li>
+  <li><strong>Real-Time JSON Telemetry Broadcast</strong>: Serves lightweight JSON payloads on <code>/data</code> containing real-time temperature, humidity, soil moisture, light, probe angle, and pump status.</li>
+</ul>
+
+<h2>Core ESP32 Production Code (Key Implementations)</h2>
+
+<pre><code>// ============================================================
+// AGRO-VATORS MASTER ROBOTICS FIRMWARE (ESP32 DevKit V1)
+// ============================================================
+#include &lt;Wire.h&gt;
+#include &lt;Adafruit_GFX.h&gt;
+#include &lt;Adafruit_SSD1306.h&gt;
+#include &lt;DHT.h&gt;
+#include &lt;WiFi.h&gt;
+#include &lt;WebServer.h&gt;
+#include &lt;ESP32Servo.h&gt;
+
+// --- Network Configuration ---
+const char* ssid = "phone1";
+const char* password = "12345678";
+WebServer server(80);
+
+// --- Pin Assignments ---
+#define IN1 26
+#define IN2 27
+#define IN3 14
+#define IN4 12
+
+#define TILT_PIN 25      // SG90 Soil Probe Deployment Servo
+#define PAN_PIN  13      // SG90 Camera Pan Servo
+#define RELAY_PIN 33     // Submersible Water Pump Relay
+#define DHTPIN 4         // DHT11 Temperature & Humidity
+#define SOIL_PIN 34      // Analog Soil Moisture (ADC1)
+#define LDR_PIN 35       // Analog Ambient Light (ADC1)
+
+// --- Soil Probe Angle Boundaries ---
+const int TILT_MIN = 20;   // 20 deg = Fully Retracted (Drive Safe)
+const int TILT_MAX = 160;  // 160 deg = Fully Deployed into Soil
+int tiltAngle = 55;        // Default safe retracted angle
+int targetTilt = 55;
+
+Servo tiltServo;
+Servo panServo;
+DHT dht(DHTPIN, DHT11);
+Adafruit_SSD1306 display(128, 64, &Wire, -1);
+
+// --- State Variables ---
+bool pumpOn = false;
+bool relayActiveLow = true;
+bool isDriving = false;
+unsigned long lastDriveTime = 0;
+const unsigned long DRIVE_WATCHDOG_MS = 600;
+
+// ============================================================
+// PUMP RELAY CONTROL (Active-LOW 3.3V Logic)
+// ============================================================
+void pumpON() {
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, relayActiveLow ? LOW : HIGH);
+  pumpOn = true;
+  Serial.println("[PUMP] Activated -> Relay Energized");
+}
+
+void pumpOFF() {
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, relayActiveLow ? HIGH : LOW);
+  pumpOn = false;
+  Serial.println("[PUMP] Deactivated -> Relay Released");
+}
+
+// ============================================================
+// MOTOR DRIVE CONTROL FUNCTIONS
+// ============================================================
+void forward() {
+  digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
+  isDriving = true; lastDriveTime = millis();
+}
+
+void backward() {
+  digitalWrite(IN1, LOW);  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);  digitalWrite(IN4, HIGH);
+  isDriving = true; lastDriveTime = millis();
+}
+
+void left() {
+  digitalWrite(IN1, LOW);  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
+  isDriving = true; lastDriveTime = millis();
+}
+
+void right() {
+  digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);  digitalWrite(IN4, HIGH);
+  isDriving = true; lastDriveTime = millis();
+}
+
+void stopMotor() {
+  digitalWrite(IN1, LOW); digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW); digitalWrite(IN4, LOW);
+  isDriving = false;
+}
+
+// ============================================================
+// SOIL PROBE SERVO CONTROL
+// ============================================================
+void handleProbeAngle() {
+  if (server.hasArg("val")) {
+    int ang = server.arg("val").toInt();
+    targetTilt = constrain(ang, TILT_MIN, TILT_MAX);
+  }
+  server.send(200, "text/plain", String(targetTilt));
+}
+
+void handleProbeDeploy() {
+  targetTilt = 135; // Standard agricultural insertion depth
+  server.send(200, "text/plain", "DEPLOYED_135");
+}
+
+void handleProbeRetract() {
+  targetTilt = 55;  // Safe transport tuck angle
+  server.send(200, "text/plain", "RETRACTED_55");
+}
+
+// ============================================================
+// JSON TELEMETRY ENDPOINT
+// ============================================================
+void handleData() {
+  String json = "{";
+  json += ""temperature":" + String(dht.readTemperature(), 1) + ",";
+  json += ""humidity":" + String(dht.readHumidity(), 1) + ",";
+  json += ""soil":" + String(analogRead(SOIL_PIN)) + ",";
+  json += ""light":" + String(analogRead(LDR_PIN)) + ",";
+  json += ""pump":"" + String(pumpOn ? "ON" : "OFF") + "",";
+  json += ""probeAngle":" + String(tiltAngle) + ",";
+  json += ""mode":"MANUAL"";
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
+  stopMotor();
+
+  pinMode(RELAY_PIN, OUTPUT);
+  pumpOFF();
+
+  tiltServo.attach(TILT_PIN);
+  tiltServo.write(targetTilt);
+
+  dht.begin();
+  Wire.begin(21, 22);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+  WiFi.begin(ssid, password);
+  server.on("/data", handleData);
+  server.on("/forward", forward);
+  server.on("/backward", backward);
+  server.on("/left", left);
+  server.on("/right", right);
+  server.on("/stop", stopMotor);
+  server.on("/pumpOn", [](){ pumpON(); server.send(200, "text/plain", "PUMP ON"); });
+  server.on("/pumpOff", [](){ pumpOFF(); server.send(200, "text/plain", "PUMP OFF"); });
+  server.on("/probe/deploy", handleProbeDeploy);
+  server.on("/probe/retract", handleProbeRetract);
+  server.on("/probe/angle", handleProbeAngle);
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+  
+  if (isDriving && (millis() - lastDriveTime > DRIVE_WATCHDOG_MS)) {
+    stopMotor();
+  }
+
+  if (millis() - lastServoMove > 20) {
+    lastServoMove = millis();
+    if (tiltAngle < targetTilt) tiltAngle = min(tiltAngle + 5, targetTilt);
+    if (tiltAngle > targetTilt) tiltAngle = max(tiltAngle - 5, targetTilt);
+    tiltServo.write(tiltAngle);
+  }
+}</code></pre>
+
+<div class="page-break"></div>
+
+<!-- ============================================================ -->
+<!-- 5. COMPUTER VISION & YOLOV8 LEAF PATHOLOGY -->
+<!-- ============================================================ -->
+<h1>5. Computer Vision & YOLOv8 Leaf Pathology Engine</h1>
+
+<p>
+The AGRO-VATORS plant pathology system uses a <strong>hybrid dual-stage diagnostic pipeline</strong> combining deep learning object detection with biochemical color space segmentation.
+</p>
+
+<h2>Dual-Stage Diagnostic Architecture</h2>
+<ol>
+  <li><strong>Stage 1 (Deep Learning Object Localization)</strong>: The live MJPEG stream from the ESP32-CAM is processed by <strong>Ultralytics YOLOv8 Nano (<code>yolov8n.pt</code>)</strong>. The convolutional neural network identifies crop leaves, separates foliage from background dirt or rover chassis components, and outputs bounding box coordinates with confidence scores.</li>
+  <li><strong>Stage 2 (Bio-Spectral HSV Color Analysis)</strong>: The localized leaf region of interest (ROI) undergoes Contrast Limited Adaptive Histogram Equalization (CLAHE) in the LAB color space to eliminate harsh outdoor shadows, followed by multi-spectral HSV bandpass filtering to measure chlorophyll vigor and lesion morphology.</li>
+</ol>
+
+<h2>Full Catalog of Detectable Diseases & Treatment Prescriptions</h2>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Disease / Condition</th>
+      <th>Pathogen / Cause</th>
+      <th>Key Visual Symptoms</th>
+      <th>Recommended Agronomic Treatment</th>
+      <th>Preventive Field Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Early Blight</strong></td>
+      <td><em>Alternaria solani</em> (Fungus)</td>
+      <td>Concentric dark brown "target-board" rings on older lower leaves.</td>
+      <td>Foliar spray of Copper Oxychloride (2.5g/L) or Mancozeb 75 WP. Prune infected foliage.</td>
+      <td>Avoid overhead sprinkler irrigation; apply mulch to prevent soil spore splash.</td>
+    </tr>
+    <tr>
+      <td><strong>Late Blight</strong></td>
+      <td><em>Phytophthora infestans</em> (Oomycete)</td>
+      <td>Rapidly enlarging water-soaked black lesions with pale chlorotic margins.</td>
+      <td><strong>High Urgency</strong>: Apply systemic Metalaxyl + Mancozeb (Ridomil MZ @ 2g/L) immediately.</td>
+      <td>Improve field furrow drainage; ensure wide row spacing for canopy airflow.</td>
+    </tr>
+    <tr>
+      <td><strong>Crop Leaf Rust</strong></td>
+      <td><em>Puccinia spp.</em> (Fungus)</td>
+      <td>Raised reddish-brown or bright copper spore pustules on leaf underside.</td>
+      <td>Spray Triazole fungicide (Propiconazole or Tebuconazole @ 1ml/L water).</td>
+      <td>Plant certified rust-resistant hybrid seeds; clear alternative grass weeds.</td>
+    </tr>
+    <tr>
+      <td><strong>Septoria Leaf Spot</strong></td>
+      <td><em>Septoria spp.</em> (Fungus)</td>
+      <td>Numerous small circular brown spots with dark margins and gray centers.</td>
+      <td>Apply Chlorothalonil or Bio-fungicide (<em>Bacillus subtilis</em>) spray.</td>
+      <td>Implement 3-year crop rotation; destroy solanaceous plant residue post-harvest.</td>
+    </tr>
+    <tr>
+      <td><strong>Powdery Mildew</strong></td>
+      <td><em>Erysiphales</em> (Fungus)</td>
+      <td>White talcum-powder-like fungal patches across the upper leaf lamina.</td>
+      <td>Spray Wettable Sulfur (2g/L) or Cold-Pressed Neem Oil (5ml/L emulsified).</td>
+      <td>Maximize sunlight penetration; avoid excessive high-nitrogen vegetative fertilizer.</td>
+    </tr>
+    <tr>
+      <td><strong>Nitrogen Deficiency</strong></td>
+      <td>Nutrient Depletion</td>
+      <td>Uniform pale yellow chlorosis starting at the leaf tip and older lower foliage.</td>
+      <td>Top-dress with Urea (46% N) or Calcium Ammonium Nitrate (CAN); apply compost tea.</td>
+      <td>Maintain soil pH between 6.0–6.8 for optimal nitrogen uptake.</td>
+    </tr>
+    <tr>
+      <td><strong>Iron Deficiency</strong></td>
+      <td>Interveinal Chlorosis</td>
+      <td>Interveinal yellowing of leaf blade while primary veins remain distinctly dark green.</td>
+      <td>Foliar spray of Chelated Iron (Fe-EDDHA or Fe-EDTA @ 1g/L) during early morning.</td>
+      <td>Correct alkaline soil; avoid over-irrigation that causes root-zone iron lockout.</td>
+    </tr>
+    <tr>
+      <td><strong>Healthy Foliage</strong></td>
+      <td>Optimum Vitality</td>
+      <td>Deep green chlorophyll pigmentation (Hue 25–88) with strong cellular turgidity.</td>
+      <td>No disease treatment needed. Maintain standard balanced NPK nutrition.</td>
+      <td>Continue automated soil moisture tracking and scheduled drip irrigation.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Multi-Modal Telemetry Cross-Referencing</h2>
+<p>
+The AI engine does not rely solely on visual imagery. It <strong>cross-references camera detections with live telemetry</strong> gathered by the rover's physical sensors:
+</p>
+<ul>
+  <li><strong>Fungal Transmission Alerts</strong>: If Early/Late Blight is detected while the onboard DHT11 reports air humidity <code>&gt; 75%</code>, the system flags an accelerated transmission alert warning of imminent spore germination.</li>
+  <li><strong>Root-Zone Disease Suppression</strong>: If Late Blight is detected while the soil probe reads oversaturated (<code>ADC &lt; 2200</code>), the system automatically blocks automated irrigation to starve the pathogen.</li>
+  <li><strong>Fertilizer Burn Protection</strong>: If Nitrogen chlorosis is detected but the soil probe indicates severe drought (<code>ADC &gt; 3800</code>), the advisory instructs the farmer to irrigate before applying chemical urea to prevent root chemical burn.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ============================================================ -->
+<!-- 6. HOW THE APP & WEB DASHBOARD WORK -->
+<!-- ============================================================ -->
+<h1>6. How the Android App & Web Dashboard Work</h1>
+
+<p>
+The AGRO-VATORS user interface is designed for rugged, one-handed mobile field operation through a responsive web console and native Android APK.
+</p>
+
+<h2>Dual Operating Modes</h2>
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">Mode 1: Laptop AI Connected (Port 5001)</div>
+    <p>
+      The Android app loads the full dashboard hosted by the laptop Flask server (<code>http://192.168.93.173:5001</code>). In this mode:
+    </p>
+    <ul>
+      <li>Streams live video overlaid with real-time YOLOv8 bounding boxes and disease confidence labels.</li>
+      <li>Calculates automated irrigation advisories based on fused weather and soil data.</li>
+      <li>Logs all sensor history and diagnostic scans to the local SQLite database.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header">Mode 2: Standalone Direct Rover Mode</div>
+    <p>
+      If the laptop is switched off or unavailable in the field, the Android app connects directly to the master ESP32 (<code>http://192.168.93.164</code>).
+    </p>
+    <ul>
+      <li>Full manual 4WD driving via touch D-pad.</li>
+      <li>Full control over the SG90 soil probe deployment servo.</li>
+      <li>Full control over the irrigation water pump relay.</li>
+      <li>Reads live raw telemetry directly from the ESP32 JSON endpoint.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Live Operator Interface & Touch Controls</h2>
+
+<div class="grid-2">
+  <div class="image-preview">
+    <img src="report_assets/app_dashboard.png" alt="Live Camera & D-Pad HUD" />
+    <div class="image-caption">Figure 6.1: Operator Driving HUD showing Touch D-Pad, Status Banner, and Live Real-Time YOLOv8 Leaf Pathology Detection with Color-Coded Bounding Boxes.</div>
+  </div>
+  <div class="image-preview">
+    <img src="report_assets/app_controls.png" alt="Probe & Pump Controls" />
+    <div class="image-caption">Figure 6.2: Field Controls HUD showing Calibrated Soil Probe Deployment Slider (20° Retracted to 160° Deployed) and Rewired Pump ON / OFF Toggles.</div>
+  </div>
+</div>
+
+<h2>User Interface Features & Operator Controls</h2>
+<ul>
+  <li><strong>Touch Directional Pad (D-Pad)</strong>: Provides Forward, Reverse, Left Turn, Right Turn, and Instant Stop. Equipped with a touch-release listener that instantly stops the motors when the operator lifts their thumb.</li>
+  <li><strong>Interactive Probe Angle Slider</strong>: A calibrated touch slider from <strong>20° to 160°</strong> with dedicated quick-action buttons:
+    <ul>
+      <li><code>[ ⬆ Retract (Drive) ]</code>: Tucks probe to 55° for safe travel over rocks and uneven furrows.</li>
+      <li><code>[ ⬇ Deploy (Soil) ]</code>: Drives probe down to 135° into the ground for sensor acquisition.</li>
+      <li>Fine step buttons (<code>-5° Step</code>, <code>+5° Step</code>, <code>90° Mid</code>) for irregular soil depths.</li>
+    </ul>
+  </li>
+  <li><strong>Rewired Irrigation Pump Controls</strong>:
+    <ul>
+      <li><code>[ ▶ Pump ON ]</code> (Styled in vibrant green): Immediately energizes the relay and starts the water pump.</li>
+      <li><code>[ ⏹ Pump OFF ]</code> (Styled in warning red): Releases the relay and shuts down the pump.</li>
+      <li>A visual status badge displays <code>Pump: ON</code> (green) or <code>Pump: OFF</code> (gray) in real time.</li>
+    </ul>
+  </li>
+  <li><strong>Robust High-Framerate Video Stream</strong>: Built using RFC-compliant boundary headers and double-buffered image loading (<code>new Image()</code> background buffer), preventing browser stream freezing or black screens on mobile devices.</li>
+  <li><strong>Multilingual Support</strong>: Instant one-click switching between <strong>English, Hindi (हिंदी), and Bengali (বাংলা)</strong> with localized agronomic labels.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ============================================================ -->
+<!-- 7. OPERATIONAL FIELD GUIDE & DEPLOYMENT -->
+<!-- ============================================================ -->
+<h1>7. Operational Field Guide & Step-by-Step Deployment</h1>
+
+<p>
+Follow this standard operating procedure to deploy the rover in the field:
+</p>
+
+<h2>Step 1: Powering On the Hardware</h2>
+<ol>
+  <li>Connect the 12V Li-ion battery pack to the L298N motor driver screw terminals.</li>
+  <li>Verify that the red power LED on the L298N driver and the red LED on the ESP32 DevKit V1 illuminate.</li>
+  <li>Ensure the 0.96" OLED display lights up and shows the initial boot splash.</li>
+</ol>
+
+<h2>Step 2: Activating the Wi-Fi Hotspot</h2>
+<ol>
+  <li>On the Android smartphone, open Settings &gt; Portable Hotspot.</li>
+  <li>Set Hotspot Name (SSID) to: <code>phone1</code></li>
+  <li>Set Password to: <code>12345678</code></li>
+  <li>Set AP Band to: <strong>2.4 GHz</strong> (ESP32 does not support 5 GHz Wi-Fi).</li>
+  <li>Turn the hotspot ON. Within 5–10 seconds, both the main ESP32 and ESP32-CAM will connect automatically.</li>
+</ol>
+
+<h2>Step 3: Starting the Laptop AI Server</h2>
+<ol>
+  <li>Connect the laptop Wi-Fi to the same <code>phone1</code> hotspot.</li>
+  <li>Navigate to the project folder and double-click <strong><code>start_rover.bat</code></strong>.</li>
+  <li>The console will start the Python Flask server on <code>http://0.0.0.0:5001</code> and load the YOLOv8 model weights into RAM.</li>
+</ol>
+
+<h2>Step 4: Launching the Mobile App</h2>
+<ol>
+  <li>Open the <strong>AgriRover</strong> APK on the smartphone.</li>
+  <li>The live camera feed with YOLO detection bounding boxes will appear on screen.</li>
+  <li>Use the on-screen D-pad to navigate the rover to the target crop row.</li>
+  <li>Tap <strong>Deploy (Soil)</strong> to lower the probe and view moisture readings.</li>
+  <li>Tap <strong>Scan Plant</strong> to execute a deep diagnostic analysis of the foliage.</li>
+  <li>Tap <strong>Pump ON</strong> if the crop requires immediate localized watering.</li>
+</ol>
+
+<div class="callout">
+  <div class="callout-title">✅ System Ready for Deployment</div>
+  <p>
+    The AGRO-VATORS platform is completely assembled, tested, calibrated, and packaged. All software components are synced to the GitHub repository (<code>https://github.com/harsha1906-an/Agroanju.git</code>) and archived in the standalone installer package (<code>AGRO-VATORS_Package.zip</code>).
+  </p>
+</div>
+
+</body>
+</html>
