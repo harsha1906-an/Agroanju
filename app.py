@@ -965,43 +965,59 @@ def camera_worker():
 
             # --------------------------------------------------------
             # REAL-TIME COMPUTER VISION LEAF & PLANT PATHOLOGY DETECTOR
+            # (Strictly gated on true green chlorophyll presence)
             # --------------------------------------------------------
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            mask_green = cv2.inRange(hsv, np.array([25, 35, 35]), np.array([88, 255, 255]))
-            mask_yellow = cv2.inRange(hsv, np.array([18, 40, 50]), np.array([28, 255, 255]))
-            mask_brown = cv2.inRange(hsv, np.array([8, 45, 25]), np.array([18, 255, 180]))
+            # True plant chlorophyll green (H: 28 to 85, Sat >= 50, Val >= 40)
+            mask_green = cv2.inRange(hsv, np.array([28, 50, 40]), np.array([85, 255, 255]))
+            # Chlorotic foliar yellow (H: 18 to 27, Sat >= 60, Val >= 60)
+            mask_yellow = cv2.inRange(hsv, np.array([18, 60, 60]), np.array([27, 255, 255]))
+            # Necrotic brown leaf lesion (H: 8 to 17, Sat >= 60, Val: 25 to 160)
+            mask_brown = cv2.inRange(hsv, np.array([8, 60, 25]), np.array([17, 255, 160]))
 
-            plant_mask = cv2.bitwise_or(mask_green, cv2.bitwise_or(mask_yellow, mask_brown))
+            # Foliage candidate mask ONLY from green and yellow vegetation
+            # (Do NOT include brown desks/floors/cardboard in candidate seeding!)
+            vegetation_seed = cv2.bitwise_or(mask_green, mask_yellow)
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-            plant_mask = cv2.morphologyEx(plant_mask, cv2.MORPH_OPEN, kernel)
-            plant_mask = cv2.morphologyEx(plant_mask, cv2.MORPH_CLOSE, kernel)
+            vegetation_seed = cv2.morphologyEx(vegetation_seed, cv2.MORPH_OPEN, kernel)
+            vegetation_seed = cv2.morphologyEx(vegetation_seed, cv2.MORPH_CLOSE, kernel)
 
-            contours, _ = cv2.findContours(plant_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(vegetation_seed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             leaf_found = False
 
             for cnt in contours:
                 area = cv2.contourArea(cnt)
-                if area > 1200:
+                # Ignore small specks, noise, or reflections (< 2200 px)
+                if area > 2200:
                     x, y, w, h = cv2.boundingRect(cnt)
+                    roi_box_area = max(1, w * h)
 
-                    roi_g = cv2.countNonZero(mask_green[y:y+h, x:x+w])
-                    roi_y = cv2.countNonZero(mask_yellow[y:y+h, x:x+w])
-                    roi_b = cv2.countNonZero(mask_brown[y:y+h, x:x+w])
-                    total_roi = max(1, roi_g + roi_y + roi_b)
+                    roi_green = cv2.countNonZero(mask_green[y:y+h, x:x+w])
+                    roi_yellow = cv2.countNonZero(mask_yellow[y:y+h, x:x+w])
+                    roi_brown = cv2.countNonZero(mask_brown[y:y+h, x:x+w])
+                    total_plant_tissue = roi_green + roi_yellow + roi_brown
 
-                    lesion_pct = (roi_b / total_roi) * 100
-                    yellow_pct = (roi_y / total_roi) * 100
-                    green_pct = (roi_g / total_roi) * 100
+                    # STRICT GATE: Candidate must contain substantial green/yellow plant matter
+                    # and must not be a background shadow or reflection
+                    green_density = (roi_green + roi_yellow) / roi_box_area
+                    if (roi_green + roi_yellow) < 1800 or green_density < 0.22:
+                        continue  # Not a real leaf! Skip.
 
-                    if lesion_pct > 14:
+                    lesion_pct = (roi_brown / max(1, total_plant_tissue)) * 100
+                    yellow_pct = (roi_yellow / max(1, total_plant_tissue)) * 100
+                    green_pct  = (roi_green  / max(1, total_plant_tissue)) * 100
+
+                    if lesion_pct >= 14 and roi_brown > 350:
                         label = f"Leaf Blight/Spot ({lesion_pct:.0f}%)"
                         color = (30, 30, 220) # Red
-                    elif yellow_pct > 22:
+                    elif yellow_pct >= 24 and roi_yellow > 500:
                         label = f"Leaf Chlorosis ({yellow_pct:.0f}%)"
                         color = (0, 215, 255) # Yellow/Gold
-                    else:
+                    elif green_pct >= 35:
                         label = f"Healthy Leaf ({green_pct:.0f}%)"
                         color = (40, 220, 80) # Vibrant Green
+                    else:
+                        continue  # Not enough confidence for classification
 
                     cv2.rectangle(annotated, (x, y), (x + w, y + h), color, 2)
                     (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
@@ -1009,7 +1025,7 @@ def camera_worker():
                     cv2.rectangle(annotated, (x, banner_top), (x + text_w + 10, banner_top + 22), color, -1)
                     cv2.putText(annotated, label, (x + 5, banner_top + 16), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
-                    if not leaf_found or area > 3000:
+                    if not leaf_found or area > 3500:
                         best_name = label
                         leaf_found = True
 
