@@ -567,6 +567,10 @@ async function updateSensors() {
         document.getElementById("temperature").innerText = data.temperature;
         document.getElementById("humidity").innerText = data.humidity;
         document.getElementById("soil").innerText = data.soil;
+        const ldrEl = document.getElementById("ldr");
+        if (ldrEl && (data.ldr !== undefined || data.light !== undefined)) {
+            ldrEl.innerText = data.ldr !== undefined ? data.ldr : data.light;
+        }
         document.getElementById("distance").innerText = data.distance;
         document.getElementById("mode").innerText = data.mode;
 

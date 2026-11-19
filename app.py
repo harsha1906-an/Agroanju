@@ -25,8 +25,8 @@ app = Flask(__name__)
 # ============================================================
 # ESP32 CONFIG
 # ============================================================
-ESP32_CAM_IP = os.getenv("ESP32_CAM_IP", "192.168.93.28")
-ESP32_MAIN_IP = os.getenv("ESP32_MAIN_IP", "192.168.93.164")
+ESP32_CAM_IP = os.getenv("ESP32_CAM_IP", "192.168.42.28")
+ESP32_MAIN_IP = os.getenv("ESP32_MAIN_IP", "192.168.42.164")
 ESP32_URL = f"http://{ESP32_CAM_IP}/capture"
 ESP32_DATA_URL = f"http://{ESP32_MAIN_IP}/data"
 ESP32_CONTROL_URL = f"http://{ESP32_MAIN_IP}"
@@ -60,7 +60,7 @@ last_detection = "None"
 # SENSOR / STATE
 # ============================================================
 OFFLINE_SENSOR = {
-    "temperature": "--", "humidity": "--", "soil": "--",
+    "temperature": "--", "humidity": "--", "soil": "--", "ldr": "--", "light": "--",
     "distance": "--", "pump": "OFF", "relayMode": "ACTIVE_LOW", "mode": "--",
     "lat": "--", "lon": "--", "pan": 90, "tilt": 90, "probeAngle": 90
 }
@@ -118,6 +118,10 @@ def get_sensor_data():
                     # Invert reported state so badge accurately displays physical relay/pump state
                     val = "ON" if str(val).upper() == "OFF" else "OFF"
                 last_sensor_data[key] = val
+        if "ldr" in data:
+            last_sensor_data["ldr"] = data["ldr"]
+        if "light" in data:
+            last_sensor_data["light"] = data["light"]
         esp32_online = True
 
         now = time.time()

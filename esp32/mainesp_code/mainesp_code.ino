@@ -191,6 +191,7 @@ float cachedTemperature = 0.0;
 float cachedHumidity = 0.0;
 
 int cachedSoil = 0;
+int cachedLdr = 0;
 
 
 unsigned long lastDHTRead = 0;
@@ -459,53 +460,10 @@ void updateDistance() {
 // ============================================================
 
 void updateSensorCache() {
-
-  unsigned long now =
-    millis();
-
-
-  if (
-    now - lastDHTRead >=
-    DHT_INTERVAL
-  ) {
-
-    lastDHTRead = now;
-
-
-    float temp =
-      dht.readTemperature();
-
-
-    float hum =
-      dht.readHumidity();
-
-
-    if (!isnan(temp)) {
-
-      cachedTemperature =
-        temp;
-
-    }
-
-
-    if (!isnan(hum)) {
-
-      cachedHumidity =
-        hum;
-
-    }
-
-  }
-
-
-  cachedSoil =
-    analogRead(
-      SOIL_PIN
-    );
-
-
-  updateDistance();
-
+  cachedSoil = analogRead(SOIL_PIN);
+  cachedLdr  = analogRead(LDR_PIN);
+  cachedTemperature = 0.0;
+  cachedHumidity = 0.0;
 }
 
 
@@ -732,240 +690,62 @@ void autonomousNavigation() {
 // ============================================================
 
 void updateOLED() {
-
-  unsigned long now =
-    millis();
-
-
-  if (
-    now - lastOLEDUpdate <
-    OLED_INTERVAL
-  ) {
-
-    return;
-
-  }
-
-
-  lastOLEDUpdate =
-    now;
-
+  unsigned long now = millis();
+  if (now - lastOLEDUpdate < OLED_INTERVAL) return;
+  lastOLEDUpdate = now;
 
   display.clearDisplay();
-
-
-  display.setTextColor(
-    WHITE
-  );
-
-
+  display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
 
-
-  display.setCursor(
-    0,
-    0
-  );
-
-  display.print(
-    "AGRI-VISE"
-  );
-
-
-  display.setCursor(
-    75,
-    0
-  );
-
-
-  if (
-    WiFi.status() ==
-    WL_CONNECTED
-  ) {
-
-    display.print(
-      "WiFi"
-    );
-
+  // Line 0: Header & WiFi Status
+  display.setCursor(0, 0);
+  display.print("AGRO-ROVER ");
+  if (WiFi.status() == WL_CONNECTED) {
+    display.print("[WiFi OK]");
+  } else {
+    display.print("[NO WiFi]");
   }
 
-  else {
-
-    display.print(
-      "OFF"
-    );
-
+  // Line 12: Real-time IP Address
+  display.setCursor(0, 12);
+  display.print("IP: ");
+  if (WiFi.status() == WL_CONNECTED) {
+    display.print(WiFi.localIP());
+  } else {
+    display.print("Connecting...");
   }
 
-
-  // Temperature
-
-  display.setCursor(
-    0,
-    14
-  );
-
-  display.print(
-    "T:"
-  );
-
-  display.print(
-    cachedTemperature,
-    1
-  );
-
-  display.print(
-    "C"
-  );
-
-
-  // Humidity
-
-  display.setCursor(
-    65,
-    14
-  );
-
-  display.print(
-    "H:"
-  );
-
-  display.print(
-    cachedHumidity,
-    0
-  );
-
-  display.print(
-    "%"
-  );
-
-
-  // Soil
-
-  display.setCursor(
-    0,
-    28
-  );
-
-  display.print(
-    "Soil:"
-  );
-
-  display.print(
-    cachedSoil
-  );
-
-
-  // Distance
-
-  display.setCursor(
-    65,
-    28
-  );
-
-  display.print(
-    "D:"
-  );
-
-  display.print(
-    distance,
-    0
-  );
-
-  display.print(
-    "cm"
-  );
-
-
-  // Mode
-
-  display.setCursor(
-    0,
-    42
-  );
-
-  display.print(
-    "Mode:"
-  );
-
-
-  if (manualMode) {
-
-    display.print(
-      "MANUAL"
-    );
-
+  // Line 24: Soil Moisture
+  display.setCursor(0, 24);
+  display.print("Soil: ");
+  display.print(cachedSoil);
+  if (cachedSoil < 3000) {
+    display.print(" [WET]");
+  } else {
+    display.print(" [DRY]");
   }
 
-  else {
-
-    display.print(
-      "AUTO"
-    );
-
+  // Line 36: Daylight LDR Sensor
+  display.setCursor(0, 36);
+  display.print("Light: ");
+  display.print(cachedLdr);
+  if (cachedLdr < 1500) {
+    display.print(" [SUN]");
+  } else {
+    display.print(" [SHADE]");
   }
 
-
-  // GPS
-
-  display.setCursor(
-    70,
-    42
-  );
-
-
-  if (
-    gps.location.isValid()
-  ) {
-
-    display.print(
-      "GPS OK"
-    );
-
-  }
-
-  else {
-
-    display.print(
-      "GPS --"
-    );
-
-  }
-
-
-  // Pump
-
-  display.setCursor(
-    0,
-    56
-  );
-
-  display.print(
-    "Pump:"
-  );
-
-
-  if (pumpOn) {
-
-    display.print(
-      "ON"
-    );
-
-  }
-
-  else {
-
-    display.print(
-      "OFF"
-    );
-
-  }
-
+  // Line 48: Pump & Probe Angle
+  display.setCursor(0, 48);
+  display.print("Pump: ");
+  display.print(pumpOn ? "RUNNING" : "OFF");
+  display.print(" | P:");
+  display.print(tiltAngle);
+  display.print((char)247);
 
   display.display();
-
 }
-
 
 // ============================================================
 // DATA
@@ -1045,6 +825,13 @@ void handleData() {
       cachedSoil
     );
 
+  json += ",";
+  json += "\"ldr\":";
+  json += String(cachedLdr);
+  json += ",";
+
+  json += "\"light\":";
+  json += String(cachedLdr);
   json += ",";
 
 
@@ -1779,8 +1566,8 @@ void setup() {
   // DHT
   // ----------------------------------------------------------
 
-  pinMode(DHTPIN, INPUT_PULLUP);
-  dht.begin();
+  // pinMode(DHTPIN, INPUT_PULLUP); // DHT removed/bypassed
+  // dht.begin();
 
 
   // ----------------------------------------------------------

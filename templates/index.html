@@ -113,8 +113,12 @@
 <div><span id="humidity" class="val">{{ sensor.humidity }}</span> %</div>
 </div>
 <div class="row">
-<div><i class="fa-solid fa-water"></i> <span data-i18n="soilMoisture">Soil</span></div>
+<div><i class="fa-solid fa-water"></i> <span data-i18n="soilMoisture">Soil Moisture</span></div>
 <div><span id="soil" class="val">{{ sensor.soil }}</span></div>
+</div>
+<div class="row">
+<div><i class="fa-solid fa-sun"></i> <span>Daylight (LDR)</span></div>
+<div><span id="ldr" class="val">{{ sensor.ldr or '--' }}</span></div>
 </div>
 <div class="row">
 <div><i class="fa-solid fa-ruler"></i> <span data-i18n="obstacle">Obstacle</span></div>
