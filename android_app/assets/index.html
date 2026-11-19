@@ -417,9 +417,26 @@ header {
 // ============================================================
 // CONFIGURATION & PERSISTENCE
 // ============================================================
-let MAIN_ESP_IP = localStorage.getItem('main_esp_ip') || "192.168.42.164";
-let CAM_ESP_IP = localStorage.getItem('cam_esp_ip') || "192.168.42.28";
-let LAPTOP_URL = localStorage.getItem('laptop_url') || "http://192.168.42.173:5001/";
+let storedMain = localStorage.getItem('main_esp_ip');
+if (!storedMain || storedMain.indexOf('192.168.93.') !== -1) {
+    storedMain = "192.168.42.164";
+    localStorage.setItem('main_esp_ip', storedMain);
+}
+let MAIN_ESP_IP = storedMain;
+
+let storedCam = localStorage.getItem('cam_esp_ip');
+if (!storedCam || storedCam.indexOf('192.168.93.') !== -1) {
+    storedCam = "192.168.42.28";
+    localStorage.setItem('cam_esp_ip', storedCam);
+}
+let CAM_ESP_IP = storedCam;
+
+let storedLaptop = localStorage.getItem('laptop_url');
+if (!storedLaptop || storedLaptop.indexOf('192.168.93.') !== -1) {
+    storedLaptop = "http://192.168.42.173:5001/";
+    localStorage.setItem('laptop_url', storedLaptop);
+}
+let LAPTOP_URL = storedLaptop;
 
 document.getElementById('cfgMainEsp').value = MAIN_ESP_IP;
 document.getElementById('cfgCamEsp').value = CAM_ESP_IP;

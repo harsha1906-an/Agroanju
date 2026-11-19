@@ -35,7 +35,7 @@ public class MainActivity extends Activity {
 
     private static final String PREFS_NAME = "AgriRoverPrefs";
     private static final String KEY_LAPTOP_URL = "laptop_url";
-    private static final String DEFAULT_LAPTOP_URL = "http://192.168.93.173:5001/";
+    private static final String DEFAULT_LAPTOP_URL = "http://192.168.42.173:5001/";
     private static final String STANDALONE_URL = "file:///android_asset/index.html";
 
     private WebView mWebView;
@@ -167,8 +167,8 @@ public class MainActivity extends Activity {
 
         setContentView(mRootLayout);
 
-        // Load the full-power Laptop AI server by default!
-        loadLaptopDashboard();
+        // Load Direct Standalone Rover Mode by default (Instant direct connection to ESP32 & CAM)
+        mWebView.loadUrl(STANDALONE_URL);
     }
 
     private void configureWebSettings() {
