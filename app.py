@@ -23,13 +23,48 @@ app = Flask(__name__)
 # DATABASE DISABLED FOR CURRENT VERSION (init_database not called)
 
 # ============================================================
-# ESP32 CONFIG
+# ESP32 CONFIG & DYNAMIC SUBNET AUTO-ADAPTATION
 # ============================================================
-ESP32_CAM_IP = os.getenv("ESP32_CAM_IP", "192.168.42.28")
-ESP32_MAIN_IP = os.getenv("ESP32_MAIN_IP", "192.168.42.164")
-ESP32_URL = f"http://{ESP32_CAM_IP}/capture"
-ESP32_DATA_URL = f"http://{ESP32_MAIN_IP}/data"
-ESP32_CONTROL_URL = f"http://{ESP32_MAIN_IP}"
+def get_active_subnet():
+    """Detect the active Wi-Fi subnet prefix from local routing table."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        parts = ip.split('.')
+        return '.'.join(parts[:3]) + '.'
+    except Exception:
+        return '192.168.42.'
+
+def resolve_esp_ips():
+    """Dynamically adapt ESP32 and CAM IPs if phone hotspot changes subnet."""
+    global ESP32_MAIN_IP, ESP32_CAM_IP, ESP32_URL, ESP32_DATA_URL, ESP32_CONTROL_URL
+    subnet = get_active_subnet()
+    configured_main = os.getenv("ESP32_MAIN_IP", "192.168.42.164")
+    configured_cam = os.getenv("ESP32_CAM_IP", "192.168.42.28")
+
+    # If configured IP belongs to an older/different subnet than current laptop IP, adapt automatically
+    if configured_main and not configured_main.startswith(subnet):
+        last_main_octet = configured_main.split('.')[-1]
+        ESP32_MAIN_IP = subnet + last_main_octet
+        print(f"[AUTO-NET] Subnet shift detected! Adapted Main ESP32 to: {ESP32_MAIN_IP}")
+    else:
+        ESP32_MAIN_IP = configured_main if configured_main else (subnet + "164")
+
+    if configured_cam and not configured_cam.startswith(subnet):
+        last_cam_octet = configured_cam.split('.')[-1]
+        ESP32_CAM_IP = subnet + last_cam_octet
+        print(f"[AUTO-NET] Subnet shift detected! Adapted ESP32-CAM to: {ESP32_CAM_IP}")
+    else:
+        ESP32_CAM_IP = configured_cam if configured_cam else (subnet + "28")
+
+    ESP32_URL = f"http://{ESP32_CAM_IP}/capture"
+    ESP32_DATA_URL = f"http://{ESP32_MAIN_IP}/data"
+    ESP32_CONTROL_URL = f"http://{ESP32_MAIN_IP}"
+
+# Initial resolution on server start
+resolve_esp_ips()
 REQUEST_TIMEOUT = 3
 CAMERA_TIMEOUT = 3
 
@@ -143,6 +178,10 @@ def get_sensor_data():
     except Exception as e:
         print("ESP32 sensor error:", e)
         esp32_online = False
+        try:
+            resolve_esp_ips()
+        except:
+            pass
         return dict(last_sensor_data)
 
 
@@ -985,7 +1024,11 @@ def camera_worker():
         except Exception as e:
             with camera_lock:
                 latest_annotated_jpeg = make_offline_frame()
-            time.sleep(0.5)
+            try:
+                resolve_esp_ips()
+            except:
+                pass
+            time.sleep(1.0)
 
 
 # Start persistent single-instance camera thread
